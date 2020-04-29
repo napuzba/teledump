@@ -4,6 +4,8 @@
 
 import json
 from datetime import date, datetime
+from typing import TextIO
+
 
 from ..Exporter import Exporter
 from ..ExporterContext import ExporterContext
@@ -51,7 +53,7 @@ class JsonlExporter(Exporter):
             msgDictionary, default=self._json_serial, ensure_ascii=False)
         return msg_dump_str
 
-    def begin_final_file(self, resulting_file, context: ExporterContext ) -> None:
+    def begin_final_file(self, output: TextIO, context: ExporterContext) -> None:
         """ Hook executes at the beginning of writing a resulting file.
             (After BOM is written in case of --addbom)
         """

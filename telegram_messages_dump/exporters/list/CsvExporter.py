@@ -3,6 +3,7 @@
 # pylint: disable=missing-docstring
 
 import re
+from typing import TextIO
 from ..Exporter import Exporter
 from ..ExporterContext import ExporterContext
 from telethon.tl.custom.message import Message
@@ -59,13 +60,13 @@ class CsvExporter(Exporter):
                                  '"' + str(self._py_encode_basestring(data.content)[0]) + '"'])
         return msg_dump_str
 
-    def begin_final_file(self, resulting_file, context: ExporterContext ) -> None:
+    def begin_final_file(self, output : TextIO, context: ExporterContext) -> None:
         """ Hook executes at the beginning of writing a resulting file.
             (After BOM is written in case of --addbom)
         """
         if not context.is_continue_mode:
             header_str = ",".join(["Message Id", "Time", "Sender Name", "Reply Id", "Message"])
-            print(header_str, file=resulting_file)
+            print(header_str, file=output)
 
     # This code is inspired by Python's json encoder's code
     def _py_encode_basestring(self, s):

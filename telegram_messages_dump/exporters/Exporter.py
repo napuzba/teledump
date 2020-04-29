@@ -1,5 +1,7 @@
+
 from .ExporterContext import ExporterContext
 from telethon.tl.custom.message import Message
+from typing import TextIO
 
 class Exporter(object):
     def format(self, msg: Message, context : ExporterContext ) -> str:
@@ -9,7 +11,7 @@ class Exporter(object):
             :returns: *one-line* string containing one message data.
         """
 
-    def begin_final_file(self, resulting_file, context: ExporterContext ) -> None:
+    def begin_final_file(self, output: TextIO , context: ExporterContext ) -> None:
         """ Hook executes at the beginning of writing a resulting file.
             (After BOM is written in case of --addbom)
         """
