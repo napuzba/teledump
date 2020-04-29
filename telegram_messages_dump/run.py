@@ -50,7 +50,7 @@ def main():
     # when user specified --continue
     try:
         if settings.is_incremental_mode and settings.last_message_id == -1:
-            metadata.merge_into_settings(settings)
+            metadata.merge(settings)
     except MetadataError as ex:
         sprint("ERROR: %s" % ex)
         sys.exit(1)

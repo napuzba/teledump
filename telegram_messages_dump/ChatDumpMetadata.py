@@ -13,70 +13,68 @@ from .settings   import ChatDumpSettings
 
 class DumpMetadata:
     """ Metadata file CRUD """
+    key_version       : int = 'version'
+    key_chatName      : str = "chat-name"
+    key_LastMessageId : str = "latest-message-id"
+    key_exporter      : str = "exporter-name"
 
-    CHAT_NAME = "chat_name"
-    LAST_MESSAGE_ID = "latest_message_id"
-    EXPORTER = "exporter_name"
 
-    def __init__(self, out_file_path : str):
-        self.meta_file_path = out_file_path + '.meta'
-        self._meta_dict = {}
-        self.logger = logging.getLogger(__name__)
+    def __init__(self, path : str):
+        self._logger : logging.Logger = logging.getLogger(__name__)
+        self._path : str  = path + '.meta'
+        self._data : dict = {}
 
-    def merge_into_settings(self, settings: ChatDumpSettings):
-        """ Get exporter name from metadata"""
-        if not self._meta_dict:
-            self._loadFromFile()
 
-        settings.chat_name = self._meta_dict[DumpMetadata.CHAT_NAME]
-        settings.last_message_id = self._meta_dict[DumpMetadata.LAST_MESSAGE_ID]
-        settings.exporter = self._meta_dict[DumpMetadata.EXPORTER]
+    def merge(self, settings: ChatDumpSettings) -> None:
+        if not self._data:
+            self._load()
+        settings.chat_name       = self._data[DumpMetadata.key_chatName]
+        settings.last_message_id = self._data[DumpMetadata.key_LastMessageId]
+        settings.exporter        = self._data[DumpMetadata.key_exporter]
 
-    def _loadFromFile(self):
+    def _load(self) -> None:
         """ Loads metadata from file """
         try:
-            self.logger.debug('Load metafile %s.', self.meta_file_path)
-            with codecs.open(self.meta_file_path, 'r', 'utf-8') as meta_file:
-                self._meta_dict = json.load(meta_file)
+            self._logger.debug('Load metafile %s.', self._path)
+            with codecs.open(self._path, 'r', 'utf-8') as ff:
+                self._data = json.load(ff)
                 # TODO Validate Meta Dict
         except OSError as ex:
-            raise MetadataError('Unable to open the metadata file "{}". {}'
-                                .format(self.meta_file_path, ex.strerror)) from ex
+            msg = 'Unable to open the metadata file "{}". {}'.format(self._path, ex.strerror)
+            raise MetadataError(msg) from ex
         except ValueError as ex:
-            raise MetadataError(
-                'Unable to load the metadata file "{}". AttributeError: {}'
-                .format(self.meta_file_path, ex)) from ex
+            msg = 'Unable to load the metadata file "{}". AttributeError: {}'.format(self._path, ex)
+            raise MetadataError(msg) from ex
 
-    def delete_meta_file(self):
+    def delete(self) -> None:
         """ Delete metafile if running in CONTINUE mode """
         try:
-            self.logger.debug('Delete old metadata file %s.', self.meta_file_path)
-            os.remove(self.meta_file_path)
+            self._logger.debug('Delete old metadata file %s.', self._path)
+            os.remove(self._path)
         except OSError as ex:
             if ex.errno != errno.ENOENT:
-                raise MetadataError('Failed to delete old metadata file. {}'
-                                    .format(ex.strerror))
+                msg = 'Failed to delete old metadata file. {}'.format(ex.strerror)
+                raise MetadataError(msg)
 
-    def save_meta_file(self, new_dict):
+    def save(self, data : dict) -> None:
         """ Save metafile to file"""
         try:
-            self.logger.debug('Save new metadata file %s.', self.meta_file_path)
-            if not self._meta_dict:
-                self._meta_dict = {}
-
-            self._meta_dict["schema"] = "http://telegram-messages-dump/schema/v/1"
-
-            if DumpMetadata.CHAT_NAME in new_dict:
-                self._meta_dict[DumpMetadata.CHAT_NAME] = new_dict[DumpMetadata.CHAT_NAME]
-            if DumpMetadata.LAST_MESSAGE_ID in new_dict:
-                self._meta_dict[DumpMetadata.LAST_MESSAGE_ID] =\
-                     new_dict[DumpMetadata.LAST_MESSAGE_ID]
-            if DumpMetadata.EXPORTER in new_dict:
-                self._meta_dict[DumpMetadata.EXPORTER] = new_dict[DumpMetadata.EXPORTER]
-
-            self.logger.info('Writing a new metadata file.')
-            with open(self.meta_file_path, 'w') as mf:
-                json.dump(self._meta_dict, mf, indent=4, sort_keys=False)
+            self._logger.debug('Save new metadata file %s.', self._path)
+            self._add_version()
+            self._add_key(data, DumpMetadata.key_chatName)
+            self._add_key(data, DumpMetadata.key_LastMessageId)
+            self._add_key(data, DumpMetadata.key_exporter)
+            with open(self._path, 'w') as mf:
+                json.dump(self._data, mf, indent=4, sort_keys=False)
         except OSError as ex:
-            raise MetadataError(
-                'Failed to write the metadata file. {}'.format(ex.strerror))
+            msg = 'Failed to write the metadata file. {}'.format(ex.strerror);
+            raise MetadataError(msg)
+
+    def _add_key(self, data: dict, key: str) -> None:
+        if key in data:
+            self._data[key] = data[key]
+
+    def _add_version(self) -> None:
+        if not self._data:
+            self._data = {}
+        self._data[DumpMetadata.key_version] = 1

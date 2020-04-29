@@ -283,7 +283,7 @@ class TelegramDumper(TelegramClient):
 
         # Delete old metafile in Continue mode
         if not self.settings.is_incremental_mode:
-            self.metadata.delete_meta_file()
+            self.metadata.delete()
 
         temp_files_list_meta = deque()  # a list of meta info about batches
 
@@ -329,16 +329,15 @@ class TelegramDumper(TelegramClient):
             "exporter_name": self.settings.exporter,
             "chat_name": self.settings.chat_name
         }
-        self.metadata.save_meta_file(meta_dict)
+        self.metadata.save(meta_dict)
 
     def _flush_buffer_in_temp_file(self, buffer):
         """ Flush buffer into a new temp file """
-        with tempfile \
-                .NamedTemporaryFile(mode='w+', encoding='utf-8', delete=False) as tf:
-            self.output_total_count += self._flush_buffer_into_filestream(buffer, tf)
-            self.temp_files_list.append(tf)
+        with tempfile.NamedTemporaryFile(mode='w+', encoding='utf-8', delete=False) as ff:
+            self.output_total_count += self._flush_buffer_into_filestream(ff, buffer)
+            self.temp_files_list.append(ff)
 
-    def _flush_buffer_into_filestream(self, buffer, file_stream):
+    def _flush_buffer_into_filestream(self, file_stream, buffer):
         """ Flush buffer into a file stream """
         count = 0
         while buffer:
@@ -349,19 +348,14 @@ class TelegramDumper(TelegramClient):
 
     def _write_final_file(self, buffer, temp_files_list_meta):
         result_file_mode = 'a' if self.settings.last_message_id > -1 else 'w'
-        with codecs.open(self.settings.out_file, result_file_mode, 'utf-8') as resulting_file:
+        with codecs.open(self.settings.out_file, result_file_mode, 'utf-8') as ff:
             if self.settings.is_addbom:
-                resulting_file.write(codecs.BOM_UTF8.decode())
+                ff.write(codecs.BOM_UTF8.decode())
 
-            self.exporter.begin_final_file(
-                resulting_file, self.exporter_context)
-
+            self.exporter.begin_final_file(ff, self.exporter_context)
             # flush what's left in the mem buffer into resulting file
-            self.output_total_count += self._flush_buffer_into_filestream(
-                buffer, resulting_file)
-
-            self._merge_temp_files_into_final(
-                resulting_file, temp_files_list_meta)
+            self.output_total_count += self._flush_buffer_into_filestream(ff, buffer)
+            self._merge_temp_files_into_final(ff, temp_files_list_meta)
 
     def _merge_temp_files_into_final(self, resulting_file, temp_files_list_meta):
         """ merge all temp files into final one and delete them """

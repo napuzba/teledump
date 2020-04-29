@@ -101,7 +101,7 @@ ENV/
 .mypy_cache/
 
 # PyCharm files
-.idea
+.idea/workspace.xml
 
 # Session temp files from Telethon
 **/*.session
