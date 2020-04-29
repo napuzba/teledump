@@ -29,8 +29,8 @@ import sys
 import logging
 from .TelegramDumper   import TelegramDumper
 from .settings         import ChatDumpSettings
-from .ChatDumpMetadata import DumpMetadata
-from .ChatDumpMetadata import MetadataError
+from .MetaFile import MetaFile
+from .exceptions import MetaFileError
 from .utils import sprint
 from .exporters import *
 
@@ -45,13 +45,13 @@ def main():
     else:
         logging.basicConfig(format=default_format, level=logging.INFO)
 
-    metadata = DumpMetadata(settings.out_file)
+    metadata = MetaFile(settings.out_file)
 
     # when user specified --continue
     try:
         if settings.is_incremental_mode and settings.last_message_id == -1:
             metadata.merge(settings)
-    except MetadataError as ex:
+    except MetaFileError as ex:
         sprint("ERROR: %s" % ex)
         sys.exit(1)
 

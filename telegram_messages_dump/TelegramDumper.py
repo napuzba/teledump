@@ -22,8 +22,10 @@ from telethon.tl.functions.contacts import ResolveUsernameRequest
 from .utils import sprint
 from .utils import JOIN_CHAT_PREFIX_URL
 from .exceptions import DumpingError
-from .exceptions import MetadataError
+from .exceptions import MetaFileError
 from .exporters import ExporterContext
+
+from .MetaFile import MetaFile
 
 
 class TelegramDumper(TelegramClient):
@@ -83,7 +85,7 @@ class TelegramDumper(TelegramClient):
                 return
             # Fetch history in chunks and save it into a resulting file
             self._do_dump(chatObj)
-        except (DumpingError, MetadataError) as ex:
+        except (DumpingError, MetaFileError) as ex:
             self.logger.error('%s', ex, exc_info=self.logger.level > logging.INFO)
             ret_code = 1
         except KeyboardInterrupt:
@@ -323,13 +325,11 @@ class TelegramDumper(TelegramClient):
         except OSError as ex:
             raise DumpingError("Dumping to a final file failed.") from ex
 
-        # Metadata that will be written into a metafile
-        meta_dict = {
-            "latest_message_id": self.cur_latest_message_id,
-            "exporter_name": self.settings.exporter,
-            "chat_name": self.settings.chat_name
-        }
-        self.metadata.save(meta_dict)
+        data = {}
+        data[MetaFile.key_chatName      ] = self.settings.chat_name
+        data[MetaFile.key_LastMessageId ] = self.cur_latest_message_id
+        data[MetaFile.key_exporter      ]    = self.settings.exporter
+        self.metadata.save(data)
 
     def _flush_buffer_in_temp_file(self, buffer):
         """ Flush buffer into a new temp file """

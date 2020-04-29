@@ -7,11 +7,11 @@ import errno
 import codecs
 import json
 import logging
-from .exceptions import MetadataError
+from .exceptions import MetaFileError
 from .settings   import ChatDumpSettings
 
 
-class DumpMetadata:
+class MetaFile:
     """ Metadata file CRUD """
     key_version       : int = 'version'
     key_chatName      : str = "chat-name"
@@ -28,9 +28,9 @@ class DumpMetadata:
     def merge(self, settings: ChatDumpSettings) -> None:
         if not self._data:
             self._load()
-        settings.chat_name       = self._data[DumpMetadata.key_chatName]
-        settings.last_message_id = self._data[DumpMetadata.key_LastMessageId]
-        settings.exporter        = self._data[DumpMetadata.key_exporter]
+        settings.chat_name       = self._data[MetaFile.key_chatName]
+        settings.last_message_id = self._data[MetaFile.key_LastMessageId]
+        settings.exporter        = self._data[MetaFile.key_exporter]
 
     def _load(self) -> None:
         """ Loads metadata from file """
@@ -41,10 +41,10 @@ class DumpMetadata:
                 # TODO Validate Meta Dict
         except OSError as ex:
             msg = 'Unable to open the metadata file "{}". {}'.format(self._path, ex.strerror)
-            raise MetadataError(msg) from ex
+            raise MetaFileError(msg) from ex
         except ValueError as ex:
             msg = 'Unable to load the metadata file "{}". AttributeError: {}'.format(self._path, ex)
-            raise MetadataError(msg) from ex
+            raise MetaFileError(msg) from ex
 
     def delete(self) -> None:
         """ Delete metafile if running in CONTINUE mode """
@@ -54,21 +54,21 @@ class DumpMetadata:
         except OSError as ex:
             if ex.errno != errno.ENOENT:
                 msg = 'Failed to delete old metadata file. {}'.format(ex.strerror)
-                raise MetadataError(msg)
+                raise MetaFileError(msg)
 
     def save(self, data : dict) -> None:
         """ Save metafile to file"""
         try:
             self._logger.debug('Save new metadata file %s.', self._path)
             self._add_version()
-            self._add_key(data, DumpMetadata.key_chatName)
-            self._add_key(data, DumpMetadata.key_LastMessageId)
-            self._add_key(data, DumpMetadata.key_exporter)
+            self._add_key(data, MetaFile.key_chatName)
+            self._add_key(data, MetaFile.key_LastMessageId)
+            self._add_key(data, MetaFile.key_exporter)
             with open(self._path, 'w') as mf:
                 json.dump(self._data, mf, indent=4, sort_keys=False)
         except OSError as ex:
             msg = 'Failed to write the metadata file. {}'.format(ex.strerror);
-            raise MetadataError(msg)
+            raise MetaFileError(msg)
 
     def _add_key(self, data: dict, key: str) -> None:
         if key in data:
@@ -77,4 +77,4 @@ class DumpMetadata:
     def _add_version(self) -> None:
         if not self._data:
             self._data = {}
-        self._data[DumpMetadata.key_version] = 1
+        self._data[MetaFile.key_version] = 1

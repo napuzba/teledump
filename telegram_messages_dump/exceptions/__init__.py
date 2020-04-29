@@ -1,2 +1,2 @@
 from .DumpingError  import DumpingError
-from .MetadataError import MetadataError
+from .MetaFileError import MetaFileError

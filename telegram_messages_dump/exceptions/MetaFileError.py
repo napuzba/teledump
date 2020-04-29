@@ -1,3 +1,3 @@
-class MetadataError(Exception):
+class MetaFileError(Exception):
   """ Metadata processing exception"""
   pass
