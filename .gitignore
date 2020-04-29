@@ -110,3 +110,5 @@ ENV/
 # Include only 'default' VSCode settings
 .vscode/launch.json
 .vscode/settings.json
+
+*.bat
