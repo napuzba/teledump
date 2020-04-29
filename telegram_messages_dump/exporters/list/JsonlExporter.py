@@ -1,18 +1,14 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# pylint: disable=missing-docstring
-
 import json
 from datetime import date, datetime
 from typing import TextIO
 
-
-from ..Exporter import Exporter
-from ..ExporterContext import ExporterContext
 from telethon.tl.custom.message import Message
-from ..FormatData import FormatData
 
 from telegram_messages_dump.exporters.Exporter import Exporter
+from ..ExporterContext import ExporterContext
+from ..FormatData import FormatData
+
+
 class JsonlExporter(Exporter):
     """ jsonl exporter plugin.
 

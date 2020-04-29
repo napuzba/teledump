@@ -4,33 +4,34 @@
     that fetches messages from Telegram and do processing.
 """
 
+import codecs
+import logging
 import os
 import os.path
 import sys
-import codecs
 import tempfile
-import logging
 from collections import deque
 from getpass import getpass
 from time import sleep
-from typing import *
+from typing import Deque
+from typing import TextIO
 
-from telethon import TelegramClient, sync # pylint: disable=unused-import
-from telethon.tl.types import Channel
+from telethon import TelegramClient,sync  # pylint: disable=unused-import
 from telethon.errors import (FloodWaitError,
                              SessionPasswordNeededError,
                              UsernameNotOccupiedError,
                              UsernameInvalidError)
 from telethon.tl.functions.contacts import ResolveUsernameRequest
-from .utils import sprint
-from .utils import JOIN_CHAT_PREFIX_URL
+from telethon.tl.types import Channel
+
 from .exceptions import DumpingError
 from .exceptions import MetaFileError
 from .exporters import Exporter
 from .exporters import ExporterContext
-from .settings import ChatDumpSettings
-
 from .settings import ChatDumpMetaFile
+from .settings import ChatDumpSettings
+from .utils import JOIN_CHAT_PREFIX_URL
+from .utils import sprint
 
 
 class TelegramDumper(TelegramClient):
@@ -65,7 +66,7 @@ class TelegramDumper(TelegramClient):
         self.id_offset : int = 0
 
         # A list of paths to the temp files
-        self.tempFiles : deque[str] = deque()
+        self.tempFiles : Deque[str] = deque()
 
         # Actual lattets message id that was prossessed since the dumper started running
         self.cur_latest_message_id : int = self.settings.last_message_id
@@ -194,7 +195,7 @@ class TelegramDumper(TelegramClient):
 
         raise ValueError('Failed to resolve dialogue/chat name "{}".'.format(name))
 
-    def _fetch_messages_from_server(self, peer, buffer : deque[str] ) -> int:
+    def _fetch_messages_from_server(self, peer, buffer : Deque[str] ) -> int:
         """ Retrieves a number (100) of messages from Telegram's DC and adds them to 'buffer'.
             :param peer:        Chat/Channel object
             :param buffer:      buffer where to place retrieved messages
@@ -320,13 +321,13 @@ class TelegramDumper(TelegramClient):
         data[ChatDumpMetaFile.key_exporter      ] = self.settings.exporter
         self.metadata.save(data)
 
-    def _flush_buffer_in_temp_file(self, buffer : Deque) -> None:
+    def _flush_buffer_in_temp_file(self, buffer : Deque[str]) -> None:
         """ Flush buffer into a new temp file """
         with tempfile.NamedTemporaryFile(mode='w+', encoding='utf-8', delete=False) as ff:
             self.output_total_count += self._flush_buffer_into_filestream(ff, buffer)
             self.tempFiles.append(ff)
 
-    def _flush_buffer_into_filestream(self, outFile: TextIO, buffer: Deque) -> int:
+    def _flush_buffer_into_filestream(self, outFile: TextIO, buffer: Deque[str]) -> int:
         """ Flush buffer into a file stream """
         count = 0
         while buffer:
@@ -335,7 +336,7 @@ class TelegramDumper(TelegramClient):
             print(cur_message, file=outFile)
         return count
 
-    def _write_final_file(self, buffer : Deque, temp_files_list_meta : Deque) -> None:
+    def _write_final_file(self, buffer : Deque[str], temp_files_list_meta : Deque[str]) -> None:
         result_file_mode = 'a' if self.settings.last_message_id > -1 else 'w'
         with codecs.open(self.settings.out_file, result_file_mode, 'utf-8') as ff:
             if self.settings.is_addbom:
@@ -346,7 +347,7 @@ class TelegramDumper(TelegramClient):
             self.output_total_count += self._flush_buffer_into_filestream(ff, buffer)
             self._merge_temp_files_into_final(ff, temp_files_list_meta)
 
-    def _merge_temp_files_into_final(self, outFile : TextIO , temp_files_list_meta : Deque) -> None:
+    def _merge_temp_files_into_final(self, outFile : TextIO , temp_files_list_meta : Deque[str]) -> None:
         """ merge all temp files into final one and delete them """
         while self.tempFiles:
             tf = self.tempFiles.pop()

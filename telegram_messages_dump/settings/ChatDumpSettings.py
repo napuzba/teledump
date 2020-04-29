@@ -1,13 +1,11 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """ This Module contains classes related to CLI interactions"""
 
-import argparse
-from telegram_messages_dump.utils import JOIN_CHAT_PREFIX_URL
+from typing import *
 
+from telegram_messages_dump.utils import JOIN_CHAT_PREFIX_URL
 from .CustomArgumentParser import CustomArgumentParser
 from .CustomFormatter import CustomFormatter
-from typing import *
+
 
 class ChatDumpSettings:
     """ Parses CLI arguments. """

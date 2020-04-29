@@ -1,14 +1,13 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """ This Module contains classes related to Metadata Files"""
 
-import os.path
-import errno
 import codecs
+import errno
 import json
 import logging
-from ..exceptions import MetaFileError
+import os.path
+
 from . import ChatDumpSettings
+from ..exceptions import MetaFileError
 
 
 class ChatDumpMetaFile:

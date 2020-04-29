@@ -1,12 +1,10 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# pylint: disable=missing-docstring
-
 import re
 from typing import TextIO
+
+from telethon.tl.custom.message import Message
+
 from ..Exporter import Exporter
 from ..ExporterContext import ExporterContext
-from telethon.tl.custom.message import Message
 from ..FormatData import FormatData
 
 

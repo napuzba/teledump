@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """ Various utility functions/classes """
 
 def sprint(string, *args, **kwargs):

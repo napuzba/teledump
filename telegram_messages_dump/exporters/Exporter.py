@@ -1,8 +1,8 @@
-
-from .ExporterContext import ExporterContext
-from telethon.tl.custom.message import Message
 from typing import TextIO
 
+from telethon.tl.custom.message import Message
+
+from .ExporterContext import ExporterContext
 class Exporter(object):
     def format(self, msg: Message, context : ExporterContext ) -> str:
         """ Formatter method. Takes raw msg and converts it to a *one-line* string.

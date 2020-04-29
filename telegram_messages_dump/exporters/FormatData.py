@@ -1,9 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# pylint: disable=missing-docstring
-
-# pylint: disable=too-few-public-methods
-
 from telethon.tl.custom.message import Message
 
 class FormatData(object):
