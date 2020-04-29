@@ -24,16 +24,15 @@ Where:
       ,  --addbom    Add BOM to the beginning of the output file. (Default: False)
     -h,  --help      Show this help message and exit.
 """
-
 import os
 import sys
-import importlib
 import logging
 from .TelegramDumper   import TelegramDumper
 from .settings         import ChatDumpSettings
 from .ChatDumpMetadata import DumpMetadata
 from .ChatDumpMetadata import MetadataError
 from .utils import sprint
+from .exporters import *
 
 def main():
     """ Entry point. """
@@ -56,34 +55,11 @@ def main():
         sprint("ERROR: %s" % ex)
         sys.exit(1)
 
-    exporter = _load_exporter(settings.exporter)
+    exporter : Exporter = load(settings.exporter)
+    if ( not exporter ) :
+        print("ERROR: No such exporter <{}>".format(settings.exporter) )
+        sys.exit(1)
 
     sys.exit(TelegramDumper(os.path.basename(__file__), settings, metadata, exporter).run())
 
-def _load_exporter(exporter_name):
-    """ Loads exporter from file <exporter_name>.py in ./exporters subfolder.
-        :param exporter_name:      name of exporter. E.g. 'text' or 'json'
 
-        :return: Exporter instance
-    """
-    # By convention exporters are located in .\exporters subfolder
-    # COMMENT: Don't check file existance. It won't play well with pyinstaller bins
-    exporter_file_name = exporter_name + ".py"
-    exporter_rel_name = "telegram_messages_dump.exporters." + exporter_name
-    # Load exporter from file
-    sprint("Try to load exporter '%s'...  " % (exporter_file_name), end='')
-    try:
-        exporter_module = importlib.import_module(exporter_rel_name)
-        sprint("OK!")
-    except ModuleNotFoundError:
-        sprint("\nERROR: Failed to load exporter './exporters/%s'." % exporter_file_name)
-        exit(1)
-
-    try:
-        exporterClass = getattr(exporter_module, exporter_name)
-    except AttributeError:
-        sprint("ERROR: Failed to load class '%s' out of './exporters/%s'." \
-               % (exporter_name, exporter_file_name))
-        exit(1)
-
-    return exporterClass()

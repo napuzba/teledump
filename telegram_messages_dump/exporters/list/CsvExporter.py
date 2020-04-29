@@ -3,9 +3,13 @@
 # pylint: disable=missing-docstring
 
 import re
-from .common import common
+from ..Exporter import Exporter
+from ..ExporterContext import ExporterContext
+from telethon.tl.custom.message import Message
+from ..FormatData import FormatData
 
-class csv(object):
+
+class CsvExporter(Exporter):
     """ csv (comma separated values) exporter plugin.
         By convention it has to be called exactly the same as its file name.
         (Apart from .py extention)
@@ -26,7 +30,7 @@ class csv(object):
         for i in range(0x20):
             self.ESCAPE_DICT.setdefault(chr(i), '\\u{0:04x}'.format(i))
 
-    def format(self, msg, exporter_context):
+    def format(self, msg: Message, context: ExporterContext) -> str:
         """ Formatter method. Takes raw msg and converts it to a *one-line* string.
             :param msg: Raw message object :class:`telethon.tl.types.Message` and derivatives.
                         https://core.telegram.org/type/Message
@@ -34,14 +38,14 @@ class csv(object):
             :returns: *one-line* string containing one message data.
         """
         # pylint: disable=unused-argument
-        name, _, content, re_id, _, _, _ = common.extract_message_data(msg)
+        data = FormatData(msg)
         # Format a message log record
         # msg_dump_str = '[{}-{:02d}-{:02d} {:02d}:{:02d}] ID={} {}{}: {}'.format(
         #     msg.date.year, msg.date.month, msg.date.day,
         #     msg.date.hour, msg.date.minute, msg.id, "RE_ID=%s " % re_id if re_id else "",
         #     name, self._py_encode_basestring(content))
 
-        name, isNameModified = self._py_encode_basestring(name)
+        name, isNameModified = self._py_encode_basestring(data.name)
 
         # Check if name contains ',' or there were other special chars.
         # If it does surround the name with quotes.
@@ -51,15 +55,15 @@ class csv(object):
         msg_dump_str = ",".join([str(msg.id),
                                  msg.date.isoformat(),
                                  name,
-                                 str(re_id),
-                                 '"' + str(self._py_encode_basestring(content)[0]) + '"'])
+                                 str(data.re_id_str),
+                                 '"' + str(self._py_encode_basestring(data.content)[0]) + '"'])
         return msg_dump_str
 
-    def begin_final_file(self, resulting_file, exporter_context):
+    def begin_final_file(self, resulting_file, context: ExporterContext ) -> None:
         """ Hook executes at the beginning of writing a resulting file.
             (After BOM is written in case of --addbom)
         """
-        if not exporter_context.is_continue_mode:
+        if not context.is_continue_mode:
             header_str = ",".join(["Message Id", "Time", "Sender Name", "Reply Id", "Message"])
             print(header_str, file=resulting_file)
 

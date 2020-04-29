@@ -112,3 +112,5 @@ ENV/
 .vscode/settings.json
 
 *.bat
+*.csv
+*.csv.meta

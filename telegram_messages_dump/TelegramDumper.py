@@ -23,7 +23,7 @@ from .utils import sprint
 from .utils import JOIN_CHAT_PREFIX_URL
 from .exceptions import DumpingError
 from .exceptions import MetadataError
-from .ExporterContext import ExporterContext
+from .exporters import ExporterContext
 
 
 class TelegramDumper(TelegramClient):
