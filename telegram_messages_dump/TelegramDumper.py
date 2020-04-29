@@ -25,7 +25,7 @@ from .exceptions import DumpingError
 from .exceptions import MetaFileError
 from .exporters import ExporterContext
 
-from .MetaFile import MetaFile
+from .settings import ChatDumpMetaFile
 
 
 class TelegramDumper(TelegramClient):
@@ -326,9 +326,9 @@ class TelegramDumper(TelegramClient):
             raise DumpingError("Dumping to a final file failed.") from ex
 
         data = {}
-        data[MetaFile.key_chatName      ] = self.settings.chat_name
-        data[MetaFile.key_LastMessageId ] = self.cur_latest_message_id
-        data[MetaFile.key_exporter      ]    = self.settings.exporter
+        data[ChatDumpMetaFile.key_chatName      ] = self.settings.chat_name
+        data[ChatDumpMetaFile.key_LastMessageId ] = self.cur_latest_message_id
+        data[ChatDumpMetaFile.key_exporter      ] = self.settings.exporter
         self.metadata.save(data)
 
     def _flush_buffer_in_temp_file(self, buffer):

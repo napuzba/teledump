@@ -7,11 +7,11 @@ import errno
 import codecs
 import json
 import logging
-from .exceptions import MetaFileError
-from .settings   import ChatDumpSettings
+from ..exceptions import MetaFileError
+from . import ChatDumpSettings
 
 
-class MetaFile:
+class ChatDumpMetaFile:
     """ Metadata file CRUD """
     key_version       : int = 'version'
     key_chatName      : str = "chat-name"
@@ -28,9 +28,9 @@ class MetaFile:
     def merge(self, settings: ChatDumpSettings) -> None:
         if not self._data:
             self._load()
-        settings.chat_name       = self._data[MetaFile.key_chatName]
-        settings.last_message_id = self._data[MetaFile.key_LastMessageId]
-        settings.exporter        = self._data[MetaFile.key_exporter]
+        settings.chat_name       = self._data[ChatDumpMetaFile.key_chatName]
+        settings.last_message_id = self._data[ChatDumpMetaFile.key_LastMessageId]
+        settings.exporter        = self._data[ChatDumpMetaFile.key_exporter]
 
     def _load(self) -> None:
         """ Loads metadata from file """
@@ -61,9 +61,9 @@ class MetaFile:
         try:
             self._logger.debug('Save new metadata file %s.', self._path)
             self._add_version()
-            self._add_key(data, MetaFile.key_chatName)
-            self._add_key(data, MetaFile.key_LastMessageId)
-            self._add_key(data, MetaFile.key_exporter)
+            self._add_key(data, ChatDumpMetaFile.key_chatName)
+            self._add_key(data, ChatDumpMetaFile.key_LastMessageId)
+            self._add_key(data, ChatDumpMetaFile.key_exporter)
             with open(self._path, 'w') as mf:
                 json.dump(self._data, mf, indent=4, sort_keys=False)
         except OSError as ex:
@@ -77,4 +77,4 @@ class MetaFile:
     def _add_version(self) -> None:
         if not self._data:
             self._data = {}
-        self._data[MetaFile.key_version] = 1
+        self._data[ChatDumpMetaFile.key_version] = 1

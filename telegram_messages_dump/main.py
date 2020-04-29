@@ -27,9 +27,9 @@ Where:
 import os
 import sys
 import logging
-from .TelegramDumper   import TelegramDumper
-from .settings         import ChatDumpSettings
-from .MetaFile import MetaFile
+from .TelegramDumper import TelegramDumper
+from .settings import ChatDumpSettings
+from .settings import ChatDumpMetaFile
 from .exceptions import MetaFileError
 from .utils import sprint
 from .exporters import *
@@ -45,7 +45,7 @@ def main():
     else:
         logging.basicConfig(format=default_format, level=logging.INFO)
 
-    metadata = MetaFile(settings.out_file)
+    metadata : ChatDumpMetaFile = ChatDumpMetaFile(settings.out_file)
 
     # when user specified --continue
     try:
