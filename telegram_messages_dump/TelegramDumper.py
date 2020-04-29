@@ -19,11 +19,11 @@ from telethon.errors import (FloodWaitError,
                              UsernameNotOccupiedError,
                              UsernameInvalidError)
 from telethon.tl.functions.contacts import ResolveUsernameRequest
-from telegram_messages_dump.utils import sprint
-from telegram_messages_dump.utils import JOIN_CHAT_PREFIX_URL
-from telegram_messages_dump.exceptions import DumpingError
-from telegram_messages_dump.exceptions import MetadataError
-from telegram_messages_dump.exporter_context import ExporterContext
+from .utils import sprint
+from .utils import JOIN_CHAT_PREFIX_URL
+from .exceptions import DumpingError
+from .exceptions import MetadataError
+from .ExporterContext import ExporterContext
 
 
 class TelegramDumper(TelegramClient):

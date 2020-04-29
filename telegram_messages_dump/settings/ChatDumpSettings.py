@@ -5,6 +5,9 @@
 import argparse
 from telegram_messages_dump.utils import JOIN_CHAT_PREFIX_URL
 
+from .CustomArgumentParser import CustomArgumentParser
+from .CustomFormatter import CustomFormatter
+from typing import *
 
 class ChatDumpSettings:
     """ Parses CLI arguments. """
@@ -90,7 +93,7 @@ class ChatDumpSettings:
         self.is_addbom = args.addbom
         self.is_quiet_mode = args.quiet
 
-    def _process_incremental_mode_option(self, args, parser):
+    def _process_incremental_mode_option(self, args : List[str], parser: CustomArgumentParser):
         """ Arguments parsing related to --continue setting """
         self.last_message_id = -1
         self.is_incremental_mode = False
@@ -108,7 +111,7 @@ class ChatDumpSettings:
                         'Unable to parse MSG_ID in --continue=<MSG_ID>')
         return
 
-    def _check_options_consistency(self, args, parser):
+    def _check_options_consistency(self, args : List[str], parser : CustomArgumentParser):
         if self.is_incremental_mode:
             if args.out == "":
                 parser.error('To increment an existing dump file. '
@@ -142,39 +145,4 @@ class ChatDumpSettings:
         return
 
 
-class CustomFormatter(argparse.HelpFormatter):
-    """ Custom formatter for setting argparse formatter_class.
-        It only outputs raw 'usage' text and omits other sections
-        (e.g. positional, optional params and epilog).
-    """
 
-    def __init__(self, prog=''):
-        argparse.HelpFormatter.__init__(
-            self, prog, max_help_position=100, width=150)
-
-    def add_usage(self, usage, actions, groups, prefix=None):
-        if usage is not argparse.SUPPRESS:
-            args = usage, actions, groups, ''
-            self._add_item(self._format_usage, args)
-
-    def _format_usage(self, usage, actions, groups, prefix):
-        # if usage is specified, use that
-        if usage is not None:
-            usage = usage % dict(prog=self._prog)
-
-        return "\n\r%s\n\r" % usage
-
-
-class CustomArgumentParser(argparse.ArgumentParser):
-    """ Custom ArgumentParser.
-        Outputs raw 'usage' text and omits other sections.
-    """
-
-    def format_help(self):
-        formatter = self._get_formatter()
-
-        # usage
-        formatter.add_usage(self.usage, self._actions,
-                            self._mutually_exclusive_groups)
-
-        return formatter.format_help()

@@ -7,7 +7,8 @@ import errno
 import codecs
 import json
 import logging
-from telegram_messages_dump.exceptions import MetadataError
+from .exceptions import MetadataError
+from .settings   import ChatDumpSettings
 
 
 class DumpMetadata:
@@ -17,12 +18,12 @@ class DumpMetadata:
     LAST_MESSAGE_ID = "latest_message_id"
     EXPORTER = "exporter_name"
 
-    def __init__(self, out_file_path):
+    def __init__(self, out_file_path : str):
         self.meta_file_path = out_file_path + '.meta'
         self._meta_dict = {}
         self.logger = logging.getLogger(__name__)
 
-    def merge_into_settings(self, settings):
+    def merge_into_settings(self, settings: ChatDumpSettings):
         """ Get exporter name from metadata"""
         if not self._meta_dict:
             self._loadFromFile()

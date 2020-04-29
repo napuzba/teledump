@@ -29,11 +29,11 @@ import os
 import sys
 import importlib
 import logging
-from telegram_messages_dump.telegram_dumper import TelegramDumper
-from telegram_messages_dump.chat_dump_settings import ChatDumpSettings
-from telegram_messages_dump.chat_dump_metadata import DumpMetadata
-from telegram_messages_dump.chat_dump_metadata import MetadataError
-from telegram_messages_dump.utils import sprint
+from .TelegramDumper   import TelegramDumper
+from .settings         import ChatDumpSettings
+from .ChatDumpMetadata import DumpMetadata
+from .ChatDumpMetadata import MetadataError
+from .utils import sprint
 
 def main():
     """ Entry point. """
