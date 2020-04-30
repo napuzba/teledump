@@ -58,43 +58,42 @@ class TelegramDumper(TelegramClient):
         self.context.isContinue = self.settings.is_incremental_mode
         # How many massages user wants to be dumped
         # explicit --limit, or default of 100 or unlimited (int.Max)
-        self.msg_count_to_process : int = 0
+        self.maxMassage : int = 0
 
         # Messages page offset for fetching
-        self.id_offset : int = 0
+        self.idPageOffset : int = 0
 
         # A list of paths to the temp files
         self.tempFiles : Deque[str] = deque()
 
         # Actual lattets message id that was prossessed since the dumper started running
-        self.cur_latest_message_id : int = self.settings.last_message_id
+        self.idLastMessage : int = self.settings.last_message_id
 
         # The number of messages written into a resulting file de-facto
-        self.output_total_count : int = 0
+        self.totalSaved : int = 0
 
-    def run(self):
+    def run(self) -> int:
         """ Dumps all desired chat messages into a file """
-
-        ret_code = 0
+        rc = 0
         try:
             self._init_connect()
             try:
                 chatObj = self._getChannel()
             except ValueError as ex:
-                ret_code = 1
+                rc = 1
                 self.logger.error('%s', ex, exc_info=self.logger.level > logging.INFO)
                 return
             # Fetch history in chunks and save it into a resulting file
             self._do_dump(chatObj)
         except (DumpingError, MetaFileError) as ex:
             self.logger.error('%s', ex, exc_info=self.logger.level > logging.INFO)
-            ret_code = 1
+            rc = 1
         except KeyboardInterrupt:
             self.print("Received a user's request to interrupt, stopping…")
-            ret_code = 1
+            rc = 1
         except Exception as ex:  # pylint: disable=broad-except
             self.logger.error('Uncaught exception occured. %s', ex, exc_info=self.logger.level > logging.INFO)
-            ret_code = 1
+            rc = 1
         finally:
             self.logger.debug('Make sure there are no temp files left undeleted.')
             # Clear temp files if any
@@ -112,29 +111,27 @@ class TelegramDumper(TelegramClient):
             except Exception:  # pylint: disable=broad-except
                 self.print('Failed to logout and clean session data.')
 
-        self.print('{} messages were successfully written in the resulting file. Done!',self.output_total_count)
-        return ret_code
+        self.print('{} messages were successfully written in the resulting file. Done!', self.totalSaved)
+        return rc
 
     def _init_connect(self) -> None:
         """ Connect to the Telegram server and Authenticate. """
         self.print('Connecting to Telegram servers...')
         if not self.connect():
             self.print('Initial connection failed.')
-
         # Then, ensure we're authorized and have access
         if not self.is_user_authorized():
             self.print('First run. Sending code request...')
             self.send_code_request(self.settings.phone_num)
-            self_user = None
-            while self_user is None:
+            selfUser = None
+            while selfUser is None:
                 code = input('Enter the code you just received: ')
                 try:
-                    self_user = self.sign_in(self.settings.phone_num, code)
-                # Two-step verification may be enabled
+                    selfUser = self.sign_in(self.settings.phone_num, code)
+                    # Two-step verification may be enabled
                 except SessionPasswordNeededError:
-                    pw = getpass("Two step verification is enabled. "
-                                 "Please enter your password: ")
-                    self_user = self.sign_in(password=pw)
+                    pw = getpass("Two step verification is enabled. Please enter your password: ")
+                    selfUser = self.sign_in(password=pw)
 
     def _getChannel(self) -> Channel:
         """ Returns telethon.tl.types.Channel object resolved from chat_name
@@ -207,7 +204,7 @@ class TelegramDumper(TelegramClient):
                 # NOTE: Telethon will make 5 attempts to reconnect
                 # before failing
                 messages = self.get_messages(
-                    peer, limit=100, offset_id=self.id_offset)
+                    peer, limit=100, offset_id=self.idPageOffset)
 
                 if messages.total > 0 and messages:
                     self.print('Processing messages with ids {}-{} ...', messages[0].id, messages[-1].id)
@@ -225,20 +222,20 @@ class TelegramDumper(TelegramClient):
         # Iterate over all (in reverse order so the latest appear
         # the last in the console) and print them with format provided by exporter.
         for msg in messages:
-            self.context.isFirst = (self.msg_count_to_process == 1)
+            self.context.isFirst = (self.maxMassage == 1)
 
             if self.settings.last_message_id >= msg.id:
-                self.msg_count_to_process = 0
+                self.maxMassage = 0
                 break
 
             msg_dump_str = self.exporter.format(msg, self.context)
 
             buffer.append(msg_dump_str)
 
-            self.msg_count_to_process -= 1
-            self.id_offset = msg.id
+            self.maxMassage -= 1
+            self.idPageOffset = msg.id
             self.context.isLast = False
-            if self.msg_count_to_process == 0:
+            if self.maxMassage == 0:
                 break
 
         return latest_message_id
@@ -254,7 +251,7 @@ class TelegramDumper(TelegramClient):
 
              :return  Number of files that were saved into resulting file
         """
-        self.msg_count_to_process = self.settings.limit \
+        self.maxMassage = self.settings.limit \
             if self.settings.limit != -1\
             and not self.settings.limit == 0\
             and not self.settings.is_incremental_mode\
@@ -276,7 +273,7 @@ class TelegramDumper(TelegramClient):
         # process messages until either all message count requested by user are retrieved
         # or offset_id reaches msg_id=1 - the head of a channel message history
         try:
-            while self.msg_count_to_process > 0:
+            while self.maxMassage > 0:
                 # slip for a few seconds to avoid flood ban
                 sleep(2)
 
@@ -286,8 +283,8 @@ class TelegramDumper(TelegramClient):
                 # This is for the case when buffer with fewer than 1000 records
                 # Relies on the fact that `_fetch_messages_from_server` returns messages
                 # in reverse order
-                if self.cur_latest_message_id < latest_message_id_fetched:
-                    self.cur_latest_message_id = latest_message_id_fetched
+                if self.idLastMessage < latest_message_id_fetched:
+                    self.idLastMessage = latest_message_id_fetched
                 # when buffer is full, flush it into a temp file
                 # Assume that once a message got into temp file it will be counted as successful
                 # 'output_total_count'. This has to be improved.
@@ -296,7 +293,7 @@ class TelegramDumper(TelegramClient):
                     tempMetaFiles.append(latest_message_id_fetched)
 
                 # break if the very beginning of channel history is reached
-                if latest_message_id_fetched == -1 or self.id_offset <= 1:
+                if latest_message_id_fetched == -1 or self.idPageOffset <= 1:
                     break
         except RuntimeError as ex:
             self.print('Fetching messages from server failed. {}',str(ex))
@@ -311,14 +308,14 @@ class TelegramDumper(TelegramClient):
 
         data = {}
         data[ChatDumpMetaFile.key_chatName      ] = self.settings.chat_name
-        data[ChatDumpMetaFile.key_LastMessageId ] = self.cur_latest_message_id
+        data[ChatDumpMetaFile.key_LastMessageId ] = self.idLastMessage
         data[ChatDumpMetaFile.key_exporter      ] = self.settings.exporter
         self.chatMeta.save(data)
 
     def _flush_buffer_in_temp_file(self, buffer : Deque[str]) -> None:
         """ Flush buffer into a new temp file """
         with tempfile.NamedTemporaryFile(mode='w+', encoding='utf-8', delete=False) as ff:
-            self.output_total_count += self._flush_buffer_into_filestream(ff, buffer)
+            self.totalSaved += self._flush_buffer_into_filestream(ff, buffer)
             self.tempFiles.append(ff)
 
     def _flush_buffer_into_filestream(self, outFile: TextIO, buffer: Deque[str]) -> int:
@@ -338,7 +335,7 @@ class TelegramDumper(TelegramClient):
 
             self.exporter.begin_final_file(ff, self.context)
             # flush what's left in the mem buffer into resulting file
-            self.output_total_count += self._flush_buffer_into_filestream(ff, buffer)
+            self.totalSaved += self._flush_buffer_into_filestream(ff, buffer)
             self._merge_temp_files_into_final(ff, temp_files_list_meta)
 
     def _merge_temp_files_into_final(self, outFile : TextIO , temp_files_list_meta : Deque[str]) -> None:
@@ -354,8 +351,8 @@ class TelegramDumper(TelegramClient):
             os.remove(tf.name)
             # update the latest_message_id metadata
             batch_latest_message_id = temp_files_list_meta.pop()
-            if batch_latest_message_id > self.cur_latest_message_id:
-                self.cur_latest_message_id = batch_latest_message_id
+            if batch_latest_message_id > self.idLastMessage:
+                self.idLastMessage = batch_latest_message_id
 
     def _check_preconditions(self) -> None:
         """ Check preconditions before processing data """
@@ -381,7 +378,7 @@ class TelegramDumper(TelegramClient):
             except OSError as ex:
                 msg = 'Output file path "{}" is invalid. {}'.format(out_file_path, ex.strerror)
                 raise DumpingError(msg)
-            self.print('Dumping {} messages into "{}" file ...', 'all' if self.msg_count_to_process == sys.maxsize else self.msg_count_to_process, out_file_path)
+            self.print('Dumping {} messages into "{}" file ...', 'all' if self.maxMassage == sys.maxsize else self.maxMassage, out_file_path)
 
     def _is_user_confirmed(self, msg: str) -> bool:
         """ Get confirmation from user """
