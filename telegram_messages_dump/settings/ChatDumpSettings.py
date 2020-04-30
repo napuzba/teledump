@@ -26,8 +26,7 @@ class ChatDumpSettings:
         parser.add_argument('-p', '--phone', required=True, type=str)
         parser.add_argument('-o', '--out', default='', type=str)
         parser.add_argument('-e', '--exp', default='', type=str)
-        parser.add_argument('--continue', dest='increment',
-                            default='*', type=str, nargs='?')
+        parser.add_argument('--continue', dest='increment', default='*', type=str, nargs='?')
         parser.add_argument('-l', '--limit', default=-1, type=int)
         parser.add_argument('-cl', '--clean', action='store_true')
         parser.add_argument('-v', '--verbose', action='store_true')
@@ -91,7 +90,7 @@ class ChatDumpSettings:
         self.isAddbom : bool = args.addbom
         self.isQuiet  : bool = args.quiet
 
-    def _process_incremental_mode_option(self, args : List[str], parser: CustomArgumentParser):
+    def _process_incremental_mode_option(self, args , parser: CustomArgumentParser):
         """ Arguments parsing related to --continue setting """
         self.idLastMessage = -1
         self.isIncremental = False
@@ -108,7 +107,7 @@ class ChatDumpSettings:
                     parser.error('Unable to parse MSG_ID in --continue=<MSG_ID>')
         return
 
-    def _check_options_consistency(self, args : List[str], parser : CustomArgumentParser):
+    def _check_options_consistency(self, args , parser : CustomArgumentParser):
         if self.isIncremental:
             if args.out == "":
                 parser.error('To increment an existing dump file. You have to specify it using --out or -o setting.')
