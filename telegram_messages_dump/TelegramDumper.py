@@ -37,7 +37,7 @@ from .utils import sprint
 class TelegramDumper(TelegramClient):
     """ Authenticates and opens new session. Retrieves message history for a chat. """
 
-    def __init__(self, session_user_id, settings : ChatDumpSettings, metadata: ChatDumpMetaFile, exporter: Exporter):
+    def __init__(self, session_user_id, settings : ChatDumpSettings, chatMeta: ChatDumpMetaFile, exporter: Exporter):
         self.logger = logging.getLogger(__name__)
         self.logger.info('Initializing session...')
         super().__init__(
@@ -51,7 +51,7 @@ class TelegramDumper(TelegramClient):
         # Settings as specified by user or defaults or from metadata
         self.settings : ChatDumpSettings = settings
         # Metadata that was possibly loaded from .meta file and will be saved there
-        self.metadata : ChatDumpMetaFile = metadata
+        self.chatMeta : ChatDumpMetaFile = chatMeta
         # Exporter object that converts msg -> string
         self.exporter : Exporter = exporter
 
@@ -275,7 +275,7 @@ class TelegramDumper(TelegramClient):
 
         # Delete old metafile in Continue mode
         if not self.settings.is_incremental_mode:
-            self.metadata.delete()
+            self.chatMeta.delete()
 
         tempMetaFiles = deque()  # a list of meta info about batches
 
@@ -319,7 +319,7 @@ class TelegramDumper(TelegramClient):
         data[ChatDumpMetaFile.key_chatName      ] = self.settings.chat_name
         data[ChatDumpMetaFile.key_LastMessageId ] = self.cur_latest_message_id
         data[ChatDumpMetaFile.key_exporter      ] = self.settings.exporter
-        self.metadata.save(data)
+        self.chatMeta.save(data)
 
     def _flush_buffer_in_temp_file(self, buffer : Deque[str]) -> None:
         """ Flush buffer into a new temp file """
