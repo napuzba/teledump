@@ -32,6 +32,7 @@ from .settings import ChatDumpMetaFile
 from .settings import ChatDumpSettings
 from .utils import JOIN_CHAT_PREFIX_URL
 
+
 class TelegramDumper(TelegramClient):
     """ Authenticates and opens new session. Retrieves message history for a chat. """
 
@@ -76,7 +77,7 @@ class TelegramDumper(TelegramClient):
         """ Dumps all desired chat messages into a file """
         rc = 0
         try:
-            self._init_connect()
+            self._cnnect()
             try:
                 chatObj = self._getChannel()
             except ValueError as ex:
@@ -84,7 +85,7 @@ class TelegramDumper(TelegramClient):
                 self.logger.error('%s', ex, exc_info=self.logger.level > logging.INFO)
                 return
             # Fetch history in chunks and save it into a resulting file
-            self._do_dump(chatObj)
+            self._dump(chatObj)
         except (DumpingError, MetaFileError) as ex:
             self.logger.error('%s', ex, exc_info=self.logger.level > logging.INFO)
             rc = 1
@@ -114,7 +115,7 @@ class TelegramDumper(TelegramClient):
         self.print('{} messages were successfully written in the resulting file. Done!', self.totalSaved)
         return rc
 
-    def _init_connect(self) -> None:
+    def _cnnect(self) -> None:
         """ Connect to the Telegram server and Authenticate. """
         self.print('Connecting to Telegram servers...')
         if not self.connect():
@@ -187,7 +188,7 @@ class TelegramDumper(TelegramClient):
 
         raise ValueError('Failed to resolve dialogue/chat name "{}".'.format(name))
 
-    def _fetch_messages_from_server(self, peer, buffer : Deque[str] ) -> int:
+    def _fetch(self, peer, buffer : Deque[str]) -> int:
         """ Retrieves a number (100) of messages from Telegram's DC and adds them to 'buffer'.
             :param peer:        Chat/Channel object
             :param buffer:      buffer where to place retrieved messages
@@ -211,7 +212,7 @@ class TelegramDumper(TelegramClient):
             except FloodWaitError as ex:
                 self.print('FloodWaitError detected. Sleep for {} sec before reconnecting! \n', ex.seconds)
                 sleep(ex.seconds)
-                self._init_connect()
+                self._cnnect()
                 continue
             break
 
@@ -240,7 +241,7 @@ class TelegramDumper(TelegramClient):
 
         return latest_message_id
 
-    def _do_dump(self, peer) -> None:
+    def _dump(self, peer) -> None:
         """ Retrieves messages in small chunks (Default: 100) and saves them in in-memory 'buffer'.
             When buffer reaches '1000' messages they are saved into intermediate temp file.
             In the end messages from all the temp files are being moved into resulting file in
@@ -257,7 +258,7 @@ class TelegramDumper(TelegramClient):
             and not self.settings.isIncremental\
             else sys.maxsize
 
-        self._check_preconditions()
+        self._preconditions()
 
         # Current buffer of messages, that will be batched into a temp file
         # or otherwise written directly into the resulting file if there are too few of them
@@ -277,7 +278,7 @@ class TelegramDumper(TelegramClient):
                 # slip for a few seconds to avoid flood ban
                 sleep(2)
 
-                latest_message_id_fetched = self._fetch_messages_from_server(
+                latest_message_id_fetched = self._fetch(
                     peer, buffer)
 
                 # This is for the case when buffer with fewer than 1000 records
@@ -289,7 +290,7 @@ class TelegramDumper(TelegramClient):
                 # Assume that once a message got into temp file it will be counted as successful
                 # 'output_total_count'. This has to be improved.
                 if len(buffer) >= 1000:
-                    self._flush_buffer_in_temp_file(buffer)
+                    self._saveTempFile(buffer)
                     tempMetaFiles.append(latest_message_id_fetched)
 
                 # break if the very beginning of channel history is reached
@@ -302,7 +303,7 @@ class TelegramDumper(TelegramClient):
         # Write all chunks into resulting file
         self.print('Merging results into an output file.')
         try:
-            self._write_final_file(buffer, tempMetaFiles)
+            self._saveFinalFile(buffer, tempMetaFiles)
         except OSError as ex:
             raise DumpingError("Dumping to a final file failed.") from ex
 
@@ -312,13 +313,13 @@ class TelegramDumper(TelegramClient):
         data[ChatDumpMetaFile.key_exporter      ] = self.settings.exporter
         self.chatMeta.save(data)
 
-    def _flush_buffer_in_temp_file(self, buffer : Deque[str]) -> None:
+    def _saveTempFile(self, buffer : Deque[str]) -> None:
         """ Flush buffer into a new temp file """
         with tempfile.NamedTemporaryFile(mode='w+', encoding='utf-8', delete=False) as ff:
-            self.totalSaved += self._flush_buffer_into_filestream(ff, buffer)
+            self.totalSaved += self._saveFile(ff, buffer)
             self.tempFiles.append(ff)
 
-    def _flush_buffer_into_filestream(self, outFile: TextIO, buffer: Deque[str]) -> int:
+    def _saveFile(self, outFile: TextIO, buffer: Deque[str]) -> int:
         """ Flush buffer into a file stream """
         count = 0
         while buffer:
@@ -327,7 +328,7 @@ class TelegramDumper(TelegramClient):
             print(cur_message, file=outFile)
         return count
 
-    def _write_final_file(self, buffer : Deque[str], temp_files_list_meta : Deque[str]) -> None:
+    def _saveFinalFile(self, buffer : Deque[str], temp_files_list_meta : Deque[str]) -> None:
         result_file_mode = 'a' if self.settings.idLastMessage > -1 else 'w'
         with codecs.open(self.settings.outFile, result_file_mode, 'utf-8') as ff:
             if self.settings.isAddbom:
@@ -335,10 +336,10 @@ class TelegramDumper(TelegramClient):
 
             self.exporter.begin_final_file(ff, self.context)
             # flush what's left in the mem buffer into resulting file
-            self.totalSaved += self._flush_buffer_into_filestream(ff, buffer)
-            self._merge_temp_files_into_final(ff, temp_files_list_meta)
+            self.totalSaved += self._saveFile(ff, buffer)
+            self._mergeToFinalFile(ff, temp_files_list_meta)
 
-    def _merge_temp_files_into_final(self, outFile : TextIO , temp_files_list_meta : Deque[str]) -> None:
+    def _mergeToFinalFile(self, outFile : TextIO, temp_files_list_meta : Deque[str]) -> None:
         """ merge all temp files into final one and delete them """
         while self.tempFiles:
             tf = self.tempFiles.pop()
@@ -354,7 +355,7 @@ class TelegramDumper(TelegramClient):
             if batch_latest_message_id > self.idLastMessage:
                 self.idLastMessage = batch_latest_message_id
 
-    def _check_preconditions(self) -> None:
+    def _preconditions(self) -> None:
         """ Check preconditions before processing data """
         out_file_path = self.settings.outFile
         if self.settings.isIncremental:
@@ -369,7 +370,7 @@ class TelegramDumper(TelegramClient):
             # In NONE-incrimental mode
             if os.path.exists(out_file_path):
                 self.print('Warning: The output file already exists.')
-                if not self._is_user_confirmed('Are you sure you want to overwrite it? [y/n]'):
+                if not self._isUserConfirmed('Are you sure you want to overwrite it? [y/n]'):
                     raise DumpingError("Terminating on user's request...")
             # Check if output file can be created/overwritten
             try:
@@ -380,7 +381,7 @@ class TelegramDumper(TelegramClient):
                 raise DumpingError(msg)
             self.print('Dumping {} messages into "{}" file ...', 'all' if self.maxMassage == sys.maxsize else self.maxMassage, out_file_path)
 
-    def _is_user_confirmed(self, msg: str) -> bool:
+    def _isUserConfirmed(self, msg: str) -> bool:
         """ Get confirmation from user """
         if self.settings.isQuiet:
             return True
