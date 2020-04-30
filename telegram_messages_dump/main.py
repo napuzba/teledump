@@ -28,7 +28,6 @@ from .TelegramDumper import TelegramDumper
 from .settings import ChatDumpSettings
 from .settings import ChatDumpMetaFile
 from .exceptions import MetaFileError
-from .utils import sprint
 from .exporters import *
 
 def main():

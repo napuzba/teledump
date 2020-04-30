@@ -2,7 +2,7 @@
 
 from typing import *
 
-from telegram_messages_dump.utils import JOIN_CHAT_PREFIX_URL
+from ..utils import JOIN_CHAT_PREFIX_URL
 from .CustomArgumentParser import CustomArgumentParser
 from .CustomFormatter import CustomFormatter
 
