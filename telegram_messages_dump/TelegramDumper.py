@@ -57,7 +57,7 @@ class TelegramDumper(TelegramClient):
 
         # The context that will be passed to the exporter
         self.context : ExporterContext = ExporterContext()
-        self.context.is_continue_mode = self.settings.is_incremental_mode
+        self.context.isContinue = self.settings.is_incremental_mode
         # How many massages user wants to be dumped
         # explicit --limit, or default of 100 or unlimited (int.Max)
         self.msg_count_to_process : int = 0
@@ -230,8 +230,7 @@ class TelegramDumper(TelegramClient):
         # Iterate over all (in reverse order so the latest appear
         # the last in the console) and print them with format provided by exporter.
         for msg in messages:
-            self.context.is_first_record = \
-                self.msg_count_to_process == 1
+            self.context.isFirst = (self.msg_count_to_process == 1)
 
             if self.settings.last_message_id >= msg.id:
                 self.msg_count_to_process = 0
@@ -243,7 +242,7 @@ class TelegramDumper(TelegramClient):
 
             self.msg_count_to_process -= 1
             self.id_offset = msg.id
-            self.context.is_last_record = False
+            self.context.isLast = False
             if self.msg_count_to_process == 0:
                 break
 

@@ -62,7 +62,7 @@ class CsvExporter(Exporter):
         """ Hook executes at the beginning of writing a resulting file.
             (After BOM is written in case of --addbom)
         """
-        if not context.is_continue_mode:
+        if not context.isContinue:
             header_str = ",".join(["Message Id", "Time", "Sender Name", "Reply Id", "Message"])
             print(header_str, file=output)
 

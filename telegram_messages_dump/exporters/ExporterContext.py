@@ -5,8 +5,8 @@ class ExporterContext:
     # pylint: disable=too-few-public-methods
     def __init__(self):
         # Is processing the first record
-        self.is_first_record : bool = False
+        self.isFirst : bool = False
         # Is processing the last record
-        self.is_last_record : bool = True
+        self.isLast : bool = True
         # Is working in continue/incremental mode
-        self.is_continue_mode : bool = False
+        self.isContinue : bool = False
