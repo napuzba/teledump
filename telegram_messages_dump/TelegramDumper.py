@@ -370,7 +370,7 @@ class TelegramDumper(TelegramClient):
             # In NONE-incrimental mode
             if os.path.exists(out_file_path):
                 self.print('Warning: The output file already exists.')
-                if not self._isUserConfirmed('Are you sure you want to overwrite it? [y/n]'):
+                if not self._confirm('Are you sure you want to overwrite it? [y/n]'):
                     raise DumpingError("Terminating on user's request...")
             # Check if output file can be created/overwritten
             try:
@@ -381,12 +381,12 @@ class TelegramDumper(TelegramClient):
                 raise DumpingError(msg)
             self.print('Dumping {} messages into "{}" file ...', 'all' if self.maxMassage == sys.maxsize else self.maxMassage, out_file_path)
 
-    def _isUserConfirmed(self, msg: str) -> bool:
+    def _confirm(self, msg: str) -> bool:
         """ Get confirmation from user """
         if self.settings.isQuiet:
             return True
-        continueResponse = input(msg).lower().strip()
-        return continueResponse == 'y' or continueResponse == 'yes'
+        response = input(msg).lower().strip()
+        return response == 'y' or response == 'yes'
 
     def print(self, msg : str, *args, **kwargs):
         """Safe Print (handle UnicodeEncodeErrors on some terminals)"""
