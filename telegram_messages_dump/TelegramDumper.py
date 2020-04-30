@@ -55,7 +55,7 @@ class TelegramDumper(TelegramClient):
 
         # The context that will be passed to the exporter
         self.context : ExporterContext = ExporterContext()
-        self.context.isContinue = self.settings.is_incremental_mode
+        self.context.isContinue = self.settings.isIncremental
         # How many massages user wants to be dumped
         # explicit --limit, or default of 100 or unlimited (int.Max)
         self.maxMassage : int = 0
@@ -67,7 +67,7 @@ class TelegramDumper(TelegramClient):
         self.tempFiles : Deque[str] = deque()
 
         # Actual lattets message id that was prossessed since the dumper started running
-        self.idLastMessage : int = self.settings.last_message_id
+        self.idLastMessage : int = self.settings.idLastMessage
 
         # The number of messages written into a resulting file de-facto
         self.totalSaved : int = 0
@@ -103,7 +103,7 @@ class TelegramDumper(TelegramClient):
                 except Exception:  # pylint: disable=broad-except
                     pass
 
-        if self.settings.is_clean:
+        if self.settings.isClean:
             try:
                 # TODO
                 # self.log_out()
@@ -122,12 +122,12 @@ class TelegramDumper(TelegramClient):
         # Then, ensure we're authorized and have access
         if not self.is_user_authorized():
             self.print('First run. Sending code request...')
-            self.send_code_request(self.settings.phone_num)
+            self.send_code_request(self.settings.phoneNum)
             selfUser = None
             while selfUser is None:
                 code = input('Enter the code you just received: ')
                 try:
-                    selfUser = self.sign_in(self.settings.phone_num, code)
+                    selfUser = self.sign_in(self.settings.phoneNum, code)
                     # Two-step verification may be enabled
                 except SessionPasswordNeededError:
                     pw = getpass("Two step verification is enabled. Please enter your password: ")
@@ -137,7 +137,7 @@ class TelegramDumper(TelegramClient):
         """ Returns telethon.tl.types.Channel object resolved from chat_name
             at Telegram server
         """
-        name = self.settings.chat_name
+        name = self.settings.chatName
 
         # For private channуls try to resolve channel peer object from its invitation link
         # Note: it will only work if the login user has already joined the private channel.
@@ -150,7 +150,7 @@ class TelegramDumper(TelegramClient):
                     self.print('Invitation link "{}" resolved into channel id={}',name, peer.id)
                     return peer
             except ValueError as ex:
-                self.logger.debug( 'Failed to resolve "%s" as an invitation link. %s', self.settings.chat_name, ex, exc_info=self.logger.level > logging.INFO )
+                self.logger.debug( 'Failed to resolve "%s" as an invitation link. %s', self.settings.chatName, ex, exc_info=self.logger.level > logging.INFO)
 
         if name.startswith('@'):
             name = name[1:]
@@ -164,7 +164,7 @@ class TelegramDumper(TelegramClient):
                     self.print('User name "{}" resolved into channel id={}', name, peer.users[0].id )
                     return peer.users[0]
             except (UsernameNotOccupiedError, UsernameInvalidError) as ex:
-                self.logger.debug('Failed to resolve "%s" as @-chat-name. %s', self.settings.chat_name, ex, exc_info=self.logger.level > logging.INFO)
+                self.logger.debug('Failed to resolve "%s" as @-chat-name. %s', self.settings.chatName, ex, exc_info=self.logger.level > logging.INFO)
 
         # Search in dialogs first, this way we will find private groups and
         # channels.
@@ -216,7 +216,7 @@ class TelegramDumper(TelegramClient):
             break
 
         latest_message_id = -1 \
-            if not messages or self.settings.last_message_id >= messages[0].id \
+            if not messages or self.settings.idLastMessage >= messages[0].id \
             else messages[0].id
 
         # Iterate over all (in reverse order so the latest appear
@@ -224,7 +224,7 @@ class TelegramDumper(TelegramClient):
         for msg in messages:
             self.context.isFirst = (self.maxMassage == 1)
 
-            if self.settings.last_message_id >= msg.id:
+            if self.settings.idLastMessage >= msg.id:
                 self.maxMassage = 0
                 break
 
@@ -254,7 +254,7 @@ class TelegramDumper(TelegramClient):
         self.maxMassage = self.settings.limit \
             if self.settings.limit != -1\
             and not self.settings.limit == 0\
-            and not self.settings.is_incremental_mode\
+            and not self.settings.isIncremental\
             else sys.maxsize
 
         self._check_preconditions()
@@ -265,7 +265,7 @@ class TelegramDumper(TelegramClient):
         buffer = deque()
 
         # Delete old metafile in Continue mode
-        if not self.settings.is_incremental_mode:
+        if not self.settings.isIncremental:
             self.chatMeta.delete()
 
         tempMetaFiles = deque()  # a list of meta info about batches
@@ -307,7 +307,7 @@ class TelegramDumper(TelegramClient):
             raise DumpingError("Dumping to a final file failed.") from ex
 
         data = {}
-        data[ChatDumpMetaFile.key_chatName      ] = self.settings.chat_name
+        data[ChatDumpMetaFile.key_chatName      ] = self.settings.chatName
         data[ChatDumpMetaFile.key_LastMessageId ] = self.idLastMessage
         data[ChatDumpMetaFile.key_exporter      ] = self.settings.exporter
         self.chatMeta.save(data)
@@ -328,9 +328,9 @@ class TelegramDumper(TelegramClient):
         return count
 
     def _write_final_file(self, buffer : Deque[str], temp_files_list_meta : Deque[str]) -> None:
-        result_file_mode = 'a' if self.settings.last_message_id > -1 else 'w'
-        with codecs.open(self.settings.out_file, result_file_mode, 'utf-8') as ff:
-            if self.settings.is_addbom:
+        result_file_mode = 'a' if self.settings.idLastMessage > -1 else 'w'
+        with codecs.open(self.settings.outFile, result_file_mode, 'utf-8') as ff:
+            if self.settings.isAddbom:
                 ff.write(codecs.BOM_UTF8.decode())
 
             self.exporter.begin_final_file(ff, self.context)
@@ -356,15 +356,15 @@ class TelegramDumper(TelegramClient):
 
     def _check_preconditions(self) -> None:
         """ Check preconditions before processing data """
-        out_file_path = self.settings.out_file
-        if self.settings.is_incremental_mode:
+        out_file_path = self.settings.outFile
+        if self.settings.isIncremental:
             # In incrimental mode
             self.print('Switching to incremental mode.')
             self.logger.debug('Checking if output file exists.')
             if not os.path.exists(out_file_path):
                 msg = 'Error: Output file does not exist. Path="{}"'.format(out_file_path)
                 raise DumpingError(msg)
-            self.print('Dumping messages newer than {} using "{}" dumper.', self.settings.last_message_id, self.settings.exporter )
+            self.print('Dumping messages newer than {} using "{}" dumper.', self.settings.idLastMessage, self.settings.exporter)
         else:
             # In NONE-incrimental mode
             if os.path.exists(out_file_path):
@@ -382,7 +382,7 @@ class TelegramDumper(TelegramClient):
 
     def _is_user_confirmed(self, msg: str) -> bool:
         """ Get confirmation from user """
-        if self.settings.is_quiet_mode:
+        if self.settings.isQuiet:
             return True
         continueResponse = input(msg).lower().strip()
         return continueResponse == 'y' or continueResponse == 'yes'

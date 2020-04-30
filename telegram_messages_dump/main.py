@@ -36,16 +36,16 @@ def main():
 
     # define the console output verbosity
     default_format = '%(levelname)s:%(message)s'
-    if settings.is_verbose:
+    if settings.isVerbose:
         logging.basicConfig(format=default_format, level=logging.DEBUG)
     else:
         logging.basicConfig(format=default_format, level=logging.INFO)
 
-    metadata : ChatDumpMetaFile = ChatDumpMetaFile(settings.out_file)
+    metadata : ChatDumpMetaFile = ChatDumpMetaFile(settings.outFile)
 
     # when user specified --continue
     try:
-        if settings.is_incremental_mode and settings.last_message_id == -1:
+        if settings.isIncremental and settings.idLastMessage == -1:
             metadata.merge(settings)
     except MetaFileError as ex:
         sprint("ERROR: %s" % ex)
