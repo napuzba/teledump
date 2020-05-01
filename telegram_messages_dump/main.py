@@ -28,7 +28,8 @@ from .TelegramDumper import TelegramDumper
 from .settings import ChatDumpSettings
 from .settings import ChatDumpMetaFile
 from .exceptions import MetaFileError
-from .exporters import *
+from . import exporters
+from . import filters
 
 def main():
     """ Entry point. """
@@ -48,14 +49,14 @@ def main():
         if settings.isIncremental and settings.idLastMessage == -1:
             metadata.merge(settings)
     except MetaFileError as ex:
-        sprint("ERROR: %s" % ex)
+        print("ERROR: {}".format(ex))
         sys.exit(1)
 
-    exporter : Exporter = load(settings.exporter)
-    if ( not exporter ) :
-        print("ERROR: No such exporter <{}>".format(settings.exporter) )
-        sys.exit(1)
+    exporter : exporters.Exporter = exporters.load(settings.exporter)
+    filter   : filters.Filter     = filters.load(settings.filter)
 
-    sys.exit(TelegramDumper(os.path.basename(__file__), settings, metadata, exporter).run())
+    dumper = TelegramDumper(os.path.basename(__file__), settings, metadata, exporter,filter)
+    rc = dumper.run()
+    sys.exit(rc)
 
 

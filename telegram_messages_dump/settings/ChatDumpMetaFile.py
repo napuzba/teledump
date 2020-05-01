@@ -27,9 +27,9 @@ class ChatDumpMetaFile:
     def merge(self, settings: ChatDumpSettings) -> None:
         if not self._data:
             self._load()
-        settings.chatName       = self._data[ChatDumpMetaFile.key_chatName]
+        settings.chatName      = self._data[ChatDumpMetaFile.key_chatName]
         settings.idLastMessage = self._data[ChatDumpMetaFile.key_LastMessageId]
-        settings.exporter        = self._data[ChatDumpMetaFile.key_exporter]
+        settings.exporter      = self._data[ChatDumpMetaFile.key_exporter]
 
     def _load(self) -> None:
         """ Loads metadata from file """

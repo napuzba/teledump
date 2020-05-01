@@ -27,6 +27,7 @@ from telethon.tl.types import Channel
 from .exceptions import DumpingError
 from .exceptions import MetaFileError
 from .exporters import Exporter
+from .filters import Filter
 from .exporters import ExporterContext
 from .settings import ChatDumpMetaFile
 from .settings import ChatDumpSettings
@@ -36,7 +37,7 @@ from .utils import JOIN_CHAT_PREFIX_URL
 class TelegramDumper(TelegramClient):
     """ Authenticates and opens new session. Retrieves message history for a chat. """
 
-    def __init__(self, session_user_id, settings : ChatDumpSettings, chatMeta: ChatDumpMetaFile, exporter: Exporter):
+    def __init__(self, session_user_id, settings : ChatDumpSettings, chatMeta: ChatDumpMetaFile, exporter: Exporter, filter : Filter ):
         self.logger = logging.getLogger(__name__)
         self.logger.info('Initializing session...')
         super().__init__(
@@ -53,13 +54,14 @@ class TelegramDumper(TelegramClient):
         self.chatMeta : ChatDumpMetaFile = chatMeta
         # Exporter object that converts msg -> string
         self.exporter : Exporter = exporter
+        self.filter   : Filter = filter
 
         # The context that will be passed to the exporter
         self.context : ExporterContext = ExporterContext()
         self.context.isContinue = self.settings.isIncremental
         # How many massages user wants to be dumped
         # explicit --limit, or default of 100 or unlimited (int.Max)
-        self.maxMassage : int = 0
+        self.messageToFetch : int = 0
 
         # Messages page offset for fetching
         self.idPageOffset : int = 0
@@ -83,7 +85,7 @@ class TelegramDumper(TelegramClient):
             except ValueError as ex:
                 rc = 1
                 self.logger.error('%s', ex, exc_info=self.logger.level > logging.INFO)
-                return
+                return rc
             # Fetch history in chunks and save it into a resulting file
             self._dump(chatObj)
         except (DumpingError, MetaFileError) as ex:
@@ -204,9 +206,7 @@ class TelegramDumper(TelegramClient):
             try:
                 # NOTE: Telethon will make 5 attempts to reconnect
                 # before failing
-                messages = self.get_messages(
-                    peer, limit=100, offset_id=self.idPageOffset)
-
+                messages = self.get_messages(peer, limit=100, offset_id=self.idPageOffset)
                 if messages.total > 0 and messages:
                     self.print('Processing messages with ids {}-{} ...', messages[0].id, messages[-1].id)
             except FloodWaitError as ex:
@@ -216,30 +216,34 @@ class TelegramDumper(TelegramClient):
                 continue
             break
 
-        latest_message_id = -1 \
+        idLastMessage = -1 \
             if not messages or self.settings.idLastMessage >= messages[0].id \
             else messages[0].id
 
         # Iterate over all (in reverse order so the latest appear
         # the last in the console) and print them with format provided by exporter.
         for msg in messages:
-            self.context.isFirst = (self.maxMassage == 1)
+            self.context.isFirst = (self.messageToFetch == 1)
+
+            if not self.filter.valid(msg):
+                self.idPageOffset = msg.id
+                continue
 
             if self.settings.idLastMessage >= msg.id:
-                self.maxMassage = 0
+                self.messageToFetch = 0
                 break
 
             msg_dump_str = self.exporter.format(msg, self.context)
 
             buffer.append(msg_dump_str)
 
-            self.maxMassage -= 1
+            self.messageToFetch -= 1
             self.idPageOffset = msg.id
             self.context.isLast = False
-            if self.maxMassage == 0:
+            if self.messageToFetch == 0:
                 break
 
-        return latest_message_id
+        return idLastMessage
 
     def _dump(self, peer) -> None:
         """ Retrieves messages in small chunks (Default: 100) and saves them in in-memory 'buffer'.
@@ -252,7 +256,7 @@ class TelegramDumper(TelegramClient):
 
              :return  Number of files that were saved into resulting file
         """
-        self.maxMassage = self.settings.limit \
+        self.messageToFetch = self.settings.limit \
             if self.settings.limit != -1\
             and not self.settings.limit == 0\
             and not self.settings.isIncremental\
@@ -274,13 +278,10 @@ class TelegramDumper(TelegramClient):
         # process messages until either all message count requested by user are retrieved
         # or offset_id reaches msg_id=1 - the head of a channel message history
         try:
-            while self.maxMassage > 0:
+            while self.messageToFetch > 0:
                 # slip for a few seconds to avoid flood ban
                 sleep(2)
-
-                latest_message_id_fetched = self._fetch(
-                    peer, buffer)
-
+                latest_message_id_fetched = self._fetch(peer, buffer)
                 # This is for the case when buffer with fewer than 1000 records
                 # Relies on the fact that `_fetch_messages_from_server` returns messages
                 # in reverse order
@@ -379,7 +380,7 @@ class TelegramDumper(TelegramClient):
             except OSError as ex:
                 msg = 'Output file path "{}" is invalid. {}'.format(out_file_path, ex.strerror)
                 raise DumpingError(msg)
-            self.print('Dumping {} messages into "{}" file ...', 'all' if self.maxMassage == sys.maxsize else self.maxMassage, out_file_path)
+            self.print('Dumping {} messages into "{}" file ...', 'all' if self.messageToFetch == sys.maxsize else self.messageToFetch, out_file_path)
 
     def _confirm(self, msg: str) -> bool:
         """ Get confirmation from user """

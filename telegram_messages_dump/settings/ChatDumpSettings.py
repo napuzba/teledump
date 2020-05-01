@@ -5,6 +5,9 @@ from typing import *
 from ..utils import JOIN_CHAT_PREFIX_URL
 from .CustomArgumentParser import CustomArgumentParser
 from .CustomFormatter import CustomFormatter
+from .. import exporters
+from .. import filters
+
 
 
 class ChatDumpSettings:
@@ -18,82 +21,61 @@ class ChatDumpSettings:
         self.api_id = 2899
         self.api_hash = '36722c72256a24c1225de00eb6a1ca74'
 
-        # Parse parameters
-        parser = CustomArgumentParser(
-            formatter_class=CustomFormatter, usage=usage)
+        self.chatName     : str  = ""
+        self.phoneNum     : str  = ""
+        self.outFile      : str  = ""
+        self.exporter     : str  = ""
+        self.limit        : int  = 0
+        self.isClean      : bool = False
+        self.isVerbose    : bool = False
+        self.isAddbom     : bool = False
+        self.isQuiet      : bool = False
+        self.isIncremental: bool = False
+        self.idLastMessage: int = -1
 
-        parser.add_argument('-c', '--chat', default='', required=False, type=str)
-        parser.add_argument('-p', '--phone', required=True, type=str)
-        parser.add_argument('-o', '--out', default='', type=str)
-        parser.add_argument('-e', '--exp', default='', type=str)
-        parser.add_argument('--continue', dest='increment', default='*', type=str, nargs='?')
-        parser.add_argument('-l', '--limit', default=-1, type=int)
-        parser.add_argument('-cl', '--clean', action='store_true')
-        parser.add_argument('-v', '--verbose', action='store_true')
-        parser.add_argument('--addbom', action='store_true')
-        parser.add_argument('-q', '--quiet', action='store_true')
+
+        # Parse parameters
+        parser = CustomArgumentParser(formatter_class=CustomFormatter, usage=usage)
+
+        parser.add_argument('-c' , '--chat'    , type=str , default='' )
+        parser.add_argument('-p' , '--phone'   , type=str , required=True)
+        parser.add_argument('-o' , '--out'     , type=str , default='')
+        parser.add_argument('-e' , '--exporter', type=str , default='')
+        parser.add_argument('-f' , '--filter'  , type=str , default='')
+        parser.add_argument(       '--continue', type=str , default='*', nargs='?', dest='increment')
+        parser.add_argument('-l' , '--limit'   , type=int , default=-1)
+        parser.add_argument('-cl', '--clean'   , action='store_true')
+        parser.add_argument('-v' , '--verbose' , action='store_true')
+        parser.add_argument(       '--addbom'  , action='store_true')
+        parser.add_argument('-q' , '--quiet'   , action='store_true')
 
         args = parser.parse_args()
 
         # Trim extra spaces in string param values
-        if args.chat:
-            args.chat = args.chat.strip()
-        if args.exp:
-            args.exp = args.exp.strip()
-        if args.out:
-            args.out = args.out.strip()
-        if args.phone:
-            args.phone = args.phone.strip()
+        args.chat     = args.chat.strip()
+        args.exporter = args.exporter.strip()
+        args.filter   = args.filter.strip()
+        args.out      = args.out.strip()
+        args.phone    = args.phone.strip()
 
         # Detect Normal/Incremental mode
-        self._process_incremental_mode_option(args, parser)
-
+        self._incremental(args, parser)
         # Check if user specified the right options depending on the mode
-        self._check_options_consistency(args, parser)
+        self._consistency(args, parser)
 
-        # Validate chat name
-        if self.idLastMessage != -1 and not args.chat != "":
-            parser.error("Chat name can't be empty")
+        self._validate_limit(args)
+        self._validate_exporter(args, parser)
+        self._validate_filter(args, parser)
+        self._validate_outFile(args)
 
-        # Validate phone number
-        try:
-            if int(args.phone) <= 0:
-                raise ValueError
-        except ValueError:
-            parser.error('Phone number is invalid.')
+        self.chatName  = args.chat
+        self.isClean   = args.clean
+        self.isVerbose = args.verbose
+        self.isAddbom  = args.addbom
+        self.isQuiet   = args.quiet
 
-        # Validate limit / set default
-        if not self.isIncremental and args.limit < 0:
-            args.limit = 100
-
-        # Validate exporter name / set default
-        exp_file = 'text' if not args.exp else args.exp
-        if not exp_file:
-            parser.error('Exporter name is invalid.')
-
-        # Default output file if not specified by user
-        OUTPUT_FILE_TEMPLATE = 'telegram_{}.log'
-        if args.out != '':
-            out_file = args.out
-        elif args.chat.startswith(JOIN_CHAT_PREFIX_URL):
-            out_file = OUTPUT_FILE_TEMPLATE.format(args.chat.rsplit('/', 1)[-1])
-        else:
-            out_file = OUTPUT_FILE_TEMPLATE.format(args.chat)
-
-        self.chatName : str  = args.chat
-        self.phoneNum : str  = args.phone
-        self.outFile  : str  = out_file
-        self.exporter : str  = exp_file
-        self.limit    : int  = args.limit
-        self.isClean  : bool = args.clean
-        self.isVerbose: bool = args.verbose
-        self.isAddbom : bool = args.addbom
-        self.isQuiet  : bool = args.quiet
-
-    def _process_incremental_mode_option(self, args , parser: CustomArgumentParser):
+    def _incremental(self, args, parser: CustomArgumentParser):
         """ Arguments parsing related to --continue setting """
-        self.idLastMessage = -1
-        self.isIncremental = False
 
         if not args.increment == '*':
             # if user specified --continue with/without a parameter
@@ -107,7 +89,7 @@ class ChatDumpSettings:
                     parser.error('Unable to parse MSG_ID in --continue=<MSG_ID>')
         return
 
-    def _check_options_consistency(self, args , parser : CustomArgumentParser):
+    def _consistency(self, args, parser : CustomArgumentParser):
         if self.isIncremental:
             if args.out == "":
                 parser.error('To increment an existing dump file. You have to specify it using --out or -o setting.')
@@ -131,7 +113,39 @@ class ChatDumpSettings:
             # In case of Normal mode
             if args.chat == "":
                 parser.error('the following arguments are required: -c/--chat ')
-        return
 
+        try:
+            zz = int(args.phone) <= 0
+            self.phoneNum = args.phone
+        except ValueError:
+            parser.error('Phone number is invalid.')
 
+    def _validate_limit(self, args):
+        # Validate limit / set default
+        self.limit = args.limit
+        if not self.isIncremental and self.limit < 0:
+            self.limit = 100
 
+    def _validate_exporter(self, args, parser):
+        # Validate exporter name / set default
+        self.exporter = exporters.fallback(args.exporter)
+        if not exporters.exist(self.exporter):
+            parser.error('No such exporter : <{}>'.format(args.exporter))
+
+    def _validate_filter(self, args, parser):
+        self.filter = filters.fallback(args.filter)
+        if not filters.exist(self.filter):
+            parser.error('No such filter : <{}>'.format(args.filter))
+
+    def _validate_outFile(self, args):
+        # Default output file if not specified by user
+        OUTPUT_FILE_TEMPLATE = 'telegram_{}.log'
+
+        if args.out != '':
+            outFile = args.out
+        elif args.chat.startswith(JOIN_CHAT_PREFIX_URL):
+            outFile = OUTPUT_FILE_TEMPLATE.format(args.chat.rsplit('/', 1)[-1])
+        else:
+            outFile = OUTPUT_FILE_TEMPLATE.format(args.chat)
+
+        self.outFile = outFile
