@@ -25,6 +25,7 @@ class ChatDumpSettings:
         self.phoneNum     : str  = ""
         self.outFile      : str  = ""
         self.exporter     : str  = ""
+        self.filter       : str  = ""
         self.limit        : int  = 0
         self.isClean      : bool = False
         self.isVerbose    : bool = False
@@ -97,7 +98,7 @@ class ChatDumpSettings:
                 # In case of --continue=<MSG_ID>
                 if args.chat == "":
                     parser.error('chat name must be specified explicitely when using --continue=<MSG_ID>')
-                if args.exp == "":
+                if args.exporter == "":
                     parser.error('exporter must be specified explicitely when using --continue=<MSG_ID>')
                 if args.limit != -1:
                     parser.error('limit setting is not allowed when using --continue=<MSG_ID>')
@@ -105,8 +106,10 @@ class ChatDumpSettings:
                 # In case of --continue
                 if args.chat != "":
                     parser.error('chat name must NOT be specified explicitely when using --continue')
-                if args.exp != "":
+                if args.exporter != "":
                     parser.error('exporter must NOT be specified explicitely when using --continue')
+                if args.filter != "":
+                    parser.error('filter must NOT be specified explicitely when using --continue')
                 if args.limit != -1:
                     parser.error('limit setting is not allowed when using --continue')
         else:
@@ -132,10 +135,12 @@ class ChatDumpSettings:
         if not exporters.exist(self.exporter):
             parser.error('No such exporter : <{}>'.format(args.exporter))
 
+
     def _validate_filter(self, args, parser):
-        self.filter = filters.fallback(args.filter)
-        if not filters.exist(self.filter):
-            parser.error('No such filter : <{}>'.format(args.filter))
+        if args.filter != '':
+            self.filter = args.filter
+            if not filters.exist(self.filter):
+                parser.error('No such filter : <{}>'.format(args.filter))
 
     def _validate_outFile(self, args):
         # Default output file if not specified by user

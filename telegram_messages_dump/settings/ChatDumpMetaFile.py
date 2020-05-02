@@ -16,6 +16,7 @@ class ChatDumpMetaFile:
     key_chatName      : str = "chat-name"
     key_LastMessageId : str = "latest-message-id"
     key_exporter      : str = "exporter-name"
+    key_filter        : str = "filter-name"
 
 
     def __init__(self, path : str):
@@ -30,6 +31,7 @@ class ChatDumpMetaFile:
         settings.chatName      = self._data[ChatDumpMetaFile.key_chatName]
         settings.idLastMessage = self._data[ChatDumpMetaFile.key_LastMessageId]
         settings.exporter      = self._data[ChatDumpMetaFile.key_exporter]
+        settings.filter        = self._data[ChatDumpMetaFile.key_filter]
 
     def _load(self) -> None:
         """ Loads metadata from file """
@@ -63,6 +65,7 @@ class ChatDumpMetaFile:
             self._add_key(data, ChatDumpMetaFile.key_chatName)
             self._add_key(data, ChatDumpMetaFile.key_LastMessageId)
             self._add_key(data, ChatDumpMetaFile.key_exporter)
+            self._add_key(data, ChatDumpMetaFile.key_filter)
             with open(self._path, 'w') as mf:
                 json.dump(self._data, mf, indent=4, sort_keys=False)
         except OSError as ex:

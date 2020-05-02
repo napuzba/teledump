@@ -3,7 +3,9 @@ from typing import TextIO
 from telethon.tl.custom.message import Message
 
 from .ExporterContext import ExporterContext
-class Exporter(object):
+from ..filters import Filter
+
+class Exporter(Filter):
     def format(self, msg: Message, context : ExporterContext ) -> str:
         """ Formatter method. Takes raw msg and converts it to a *one-line* string.
             :param msg: Raw message object :class:`telethon.tl.types.Message` and derivatives.

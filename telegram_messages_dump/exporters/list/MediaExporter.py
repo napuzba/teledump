@@ -1,11 +1,11 @@
 import os.path
+
 from telethon.tl.custom.message import Message
-from telethon.tl.types import MessageMediaDocument
 from telethon.tl.types import DocumentAttributeFilename
+from telethon.tl.types import MessageMediaDocument
 
 from .CsvExporterBase import CsvExporterBase
 from ..ExporterContext import ExporterContext
-
 
 class MediaExporter(CsvExporterBase):
     def __init__(self):
@@ -31,3 +31,6 @@ class MediaExporter(CsvExporterBase):
         values[self.key_size] = msg.media.document.size // (1024*1024)
         values[self.key_ext]  = ext
         return self._strRow(values)
+
+    def valid(self, msg: Message ) -> bool:
+        return isinstance(msg.media,MessageMediaDocument)

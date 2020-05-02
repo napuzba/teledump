@@ -20,7 +20,9 @@ def exist( name : str) -> bool:
     return name in _filters
 
 
-def load(name: str) -> Union[Filter,None]:
+def load(name: str, filter : Filter) -> Union[Filter,None]:
     if name in _filters:
         return _filters[name]()
+    if name == '':
+        return filter
     return None

@@ -53,7 +53,7 @@ def main():
         sys.exit(1)
 
     exporter : exporters.Exporter = exporters.load(settings.exporter)
-    filter   : filters.Filter     = filters.load(settings.filter)
+    filter: filters.Filter = filters.load(settings.filter, exporter)
 
     dumper = TelegramDumper(os.path.basename(__file__), settings, metadata, exporter,filter)
     rc = dumper.run()

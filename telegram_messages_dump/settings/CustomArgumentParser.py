@@ -8,6 +8,5 @@ class CustomArgumentParser(argparse.ArgumentParser):
   def format_help(self):
     formatter = self._get_formatter()
     # usage
-    formatter.add_usage(self.usage, self._actions,
-                        self._mutually_exclusive_groups)
+    formatter.add_usage(self.usage, self._actions, self._mutually_exclusive_groups)
     return formatter.format_help()
