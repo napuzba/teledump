@@ -4,7 +4,7 @@ from typing import TextIO
 
 from telethon.tl.custom.message import Message
 
-from telegram_messages_dump.exporters.Exporter import Exporter
+from ..Exporter import Exporter
 from ..ExporterContext import ExporterContext
 from ..FormatData import FormatData
 
