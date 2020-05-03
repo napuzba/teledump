@@ -1,2 +1,2 @@
-from telegram_messages_dump import main
+from teledump import main
 main.main()

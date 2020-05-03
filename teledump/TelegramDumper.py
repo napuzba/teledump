@@ -205,7 +205,10 @@ class TelegramDumper(TelegramClient):
         for _ in range(0, 5):
             try:
                 # NOTE: Telethon will make 5 attempts to reconnect before failing
-                messages = self.get_messages(peer, limit=100, offset_id=self.idPageOffset)
+                limit = 100
+                if self.messageToFetch > 1000:
+                    limit = 1000
+                messages = self.get_messages(peer, limit=limit, offset_id=self.idPageOffset)
                 if messages.total > 0 and messages:
                     self.print('{2:5} To Find - Fetch messages with ids {0:6} - {1:6} ...', messages[0].id, messages[-1].id , self.messageToFetch)
             except FloodWaitError as ex:

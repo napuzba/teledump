@@ -27,7 +27,7 @@ class MediaExporter(CsvExporterBase):
                 fileName = attr.file_name
                 ext = os.path.splitext(fileName)[1][1:]
         values[self.key_name] = fileName
-        values[self.key_id  ] = 'http://t.me/{0:d}/{1:d}'.format(msg.chat.id,msg.id)
+        values[self.key_id  ] = 'https://t.me/c/{0:d}/{1:d}'.format(msg.chat.id,msg.id)
         values[self.key_size] = msg.media.document.size // (1024*1024)
         values[self.key_ext]  = ext
         return self._strRow(values)
