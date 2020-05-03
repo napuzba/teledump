@@ -101,7 +101,7 @@ ENV/
 .mypy_cache/
 
 # PyCharm files
-.idea
+.idea/workspace.xml
 
 # Session temp files from Telethon
 **/*.session
@@ -110,3 +110,7 @@ ENV/
 # Include only 'default' VSCode settings
 .vscode/launch.json
 .vscode/settings.json
+
+*.bat
+*.csv
+*.csv.meta
