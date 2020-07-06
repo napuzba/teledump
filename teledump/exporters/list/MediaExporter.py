@@ -22,7 +22,7 @@ class MediaExporter(CsvExporterBase):
         self.values = {}
 
     def init(self):
-        self.col_name     = "name"
+        self.col_file     = "file"
         self.col_link     = "link"
         self.col_size     = "size"
         self.col_ext      = "ext"
@@ -32,7 +32,7 @@ class MediaExporter(CsvExporterBase):
         self.col_chatId   = "chat-id"
 
 
-        self._addHeader( self.col_name )
+        self._addHeader(self.col_file)
         self._addHeader( self.col_link )
         self._addHeader( self.col_msgId )
         self._addHeader( self.col_size )
@@ -79,7 +79,7 @@ class MediaExporter(CsvExporterBase):
             if isinstance(attr, DocumentAttributeFilename) :
                 fileName = attr.file_name
                 ext = os.path.splitext(fileName)[1][1:]
-        self.values[self.col_name    ] = fileName
+        self.values[self.col_file    ] = fileName
         self.values[self.col_link    ] = 'https://t.me/c/{0:d}/{1:d}'.format(msg.chat.id, msg.id)
         self.values[self.col_size    ] = msg.media.document.size // (1024 * 1024)
         self.values[self.col_ext     ] = ext

@@ -8,13 +8,13 @@ class FormatData(object):
 
     def __init__(self, msg : Message = None):
         """ constructor """
-        self.name : str = None
-        self.caption : str = None
-        self.content : str = None
-        self.re_id_str : str = None
-        self.is_sent_by_bot : str = None
-        self.is_contains_media : str = None
-        self.media_content : str = None
+        self.name : str
+        self.caption : str
+        self.content : str
+        self.re_id_str : str
+        self.is_sent_by_bot : str
+        self.is_contains_media : str
+        self.media_content : str
 
         if msg != None:
             self.parse(msg)
