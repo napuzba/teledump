@@ -25,7 +25,7 @@ class ChatDumpSettings:
         self.phoneNum     : str  = ""
         self.outFile      : str  = ""
         self.exporter     : str  = ""
-        self.exporterData : str = ""
+        self.exporterConfig:str  = ""
         self.filter       : str  = ""
         self.limit        : int  = 0
         self.isClean      : bool = False
@@ -136,7 +136,7 @@ class ChatDumpSettings:
         self.exporter = exporters.fallback(args.exporter)
         if not exporters.exist(self.exporter):
             parser.error('No such exporter : <{}>'.format(args.exporter))
-        self.exporterData = args.expdata
+        self.exporterConfig = args.expdata
 
     def _validate_filter(self, args, parser):
         if args.filter != '':

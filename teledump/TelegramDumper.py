@@ -314,6 +314,7 @@ class TelegramDumper(TelegramClient):
         data[ChatDumpMetaFile.key_chatName      ] = self.settings.chatName
         data[ChatDumpMetaFile.key_LastMessageId ] = self.idLastMessage
         data[ChatDumpMetaFile.key_exporter      ] = self.settings.exporter
+        data[ChatDumpMetaFile.key_exporterConfig] = self.settings.exporterConfig
         data[ChatDumpMetaFile.key_filter        ] = self.settings.filter
         self.chatMeta.save(data)
 

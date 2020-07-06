@@ -73,7 +73,7 @@ class Main:
 
     def loadExporter(self):
         self.exporter = exporters.load(self.settings.exporter)
-        self.exporter.setConfig(self.settings.exporterData)
+        self.exporter.setConfig(self.settings.exporterConfig)
 
     def loadFilter(self):
         self.filter = filters.load(self.settings.filter, self.exporter)
