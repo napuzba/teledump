@@ -39,7 +39,7 @@ class CsvExporterBase(Exporter):
             if (ss.find(",") != -1):
                 ss = '"' + ss + '"'
             return ss
-        return ','.join(escape(values[kk]) for kk in self.fields)
+        return '\t'.join(escape(values[kk]) for kk in self.fields)
 
     def _strHeader(self):
-        return ','.join(self.headers[kk] for kk in self.fields)
+        return '\t'.join(self.headers[kk] for kk in self.fields)
