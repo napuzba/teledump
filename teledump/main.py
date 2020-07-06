@@ -31,32 +31,55 @@ from .exceptions import MetaFileError
 from . import exporters
 from . import filters
 
-def main():
-    """ Entry point. """
-    settings = ChatDumpSettings(__doc__)
+class Main:
+    def __init__(self):
+        self.settings : ChatDumpSettings
+        self.exporter: exporters.Exporter
+        self.filter : filters.Filter
+        self.metadata : ChatDumpMetaFile
 
-    # define the console output verbosity
-    default_format = '%(levelname)s:%(message)s'
-    if settings.isVerbose:
-        logging.basicConfig(format=default_format, level=logging.DEBUG)
-    else:
-        logging.basicConfig(format=default_format, level=logging.INFO)
+    def main(self):
+        self.loadSettings()
+        self.loadLogger()
+        self.loadMetaData()
+        self.loadExporter()
+        self.loadFilter()
 
-    metadata : ChatDumpMetaFile = ChatDumpMetaFile(settings.outFile)
+        dumper = TelegramDumper(
+            os.path.basename(__file__),
+            self.settings, self.metadata,
+            self.exporter,
+            self.filter
+        )
+        rc = dumper.run()
+        sys.exit(rc)
 
-    # when user specified --continue
-    try:
-        if settings.isIncremental and settings.idLastMessage == -1:
-            metadata.merge(settings)
-    except MetaFileError as ex:
-        print("ERROR: {}".format(ex))
-        sys.exit(1)
+    def loadLogger(self):
+        default_format = '%(levelname)s:%(message)s'
+        level = logging.INFO
+        if self.settings.isVerbose:
+            level = logging.DEBUG
+        logging.basicConfig(format=default_format, level=level)
 
-    exporter : exporters.Exporter = exporters.load(settings.exporter)
-    filter: filters.Filter = filters.load(settings.filter, exporter)
+    def loadMetaData(self):
+        self.metadata = ChatDumpMetaFile(self.settings.outFile)
+        # when user specified --continue
+        try:
+            if self.settings.isIncremental and self.settings.idLastMessage == -1:
+                self.metadata.merge(self.settings)
+        except MetaFileError as ex:
+            print("ERROR: {}".format(ex))
+            sys.exit(1)
 
-    dumper = TelegramDumper(os.path.basename(__file__), settings, metadata, exporter,filter)
-    rc = dumper.run()
-    sys.exit(rc)
+    def loadExporter(self):
+        self.exporter = exporters.load(self.settings.exporter)
+        self.exporter.setConfig(self.settings.exporterData)
+
+    def loadFilter(self):
+        self.filter = filters.load(self.settings.filter, self.exporter)
+
+    def loadSettings(self):
+        self.settings = ChatDumpSettings(__doc__)
 
 
+Main().main()

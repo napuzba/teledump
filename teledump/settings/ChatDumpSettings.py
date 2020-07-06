@@ -25,6 +25,7 @@ class ChatDumpSettings:
         self.phoneNum     : str  = ""
         self.outFile      : str  = ""
         self.exporter     : str  = ""
+        self.exporterData : str = ""
         self.filter       : str  = ""
         self.limit        : int  = 0
         self.isClean      : bool = False
@@ -42,6 +43,7 @@ class ChatDumpSettings:
         parser.add_argument('-p' , '--phone'   , type=str , required=True)
         parser.add_argument('-o' , '--out'     , type=str , default='')
         parser.add_argument('-e' , '--exporter', type=str , default='')
+        parser.add_argument(       '--expdata' , type=str, default='')
         parser.add_argument('-f' , '--filter'  , type=str , default='')
         parser.add_argument(       '--continue', type=str , default='*', nargs='?', dest='increment')
         parser.add_argument('-l' , '--limit'   , type=int , default=-1)
@@ -134,7 +136,7 @@ class ChatDumpSettings:
         self.exporter = exporters.fallback(args.exporter)
         if not exporters.exist(self.exporter):
             parser.error('No such exporter : <{}>'.format(args.exporter))
-
+        self.exporterData = args.expdata
 
     def _validate_filter(self, args, parser):
         if args.filter != '':

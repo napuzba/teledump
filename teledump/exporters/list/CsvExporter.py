@@ -1,6 +1,6 @@
 from telethon.tl.custom.message import Message
 
-from .CsvExporterBase import CsvExporterBase
+from teledump.exporters.csv.CsvExporterBase import CsvExporterBase
 from ..ExporterContext import ExporterContext
 from ..FormatData import FormatData
 
@@ -18,11 +18,11 @@ class CsvExporter(CsvExporterBase):
         self.key_replyId = 3
         self.key_message = 4
 
-        self._addHeader(self.key_id     , "Message-Id" )
-        self._addHeader(self.key_time   , "Time"       )
-        self._addHeader(self.key_sender , "Sender-Name")
-        self._addHeader(self.key_replyId, "Reply-Id"   )
-        self._addHeader(self.key_message, "Message"    )
+        self._addField(self.key_id, "Message-Id")
+        self._addField(self.key_time, "Time")
+        self._addField(self.key_sender, "Sender-Name")
+        self._addField(self.key_replyId, "Reply-Id")
+        self._addField(self.key_message, "Message")
 
     def format(self, msg: Message, context: ExporterContext) -> str:
         data = FormatData(msg)
