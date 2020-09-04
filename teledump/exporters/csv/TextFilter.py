@@ -8,7 +8,7 @@ class TextFilter(Filter):
     @staticmethod
     def parse(ss : str) -> Union[Filter,None]:
         ss = ss.strip()
-        match = re.match("(\w+)\x20*(@=|#=|\$=)(.*)",ss)
+        match = re.match("([-\w]+)\x20*(@=|#=|\$=)(.*)",ss)
         if match is None:
             return None
         key = match.group(1)

@@ -8,7 +8,7 @@ class NumFilter(Filter):
     @staticmethod
     def parse(ss : str) -> Union[Filter,None]:
         ss = ss.strip()
-        match = re.match("(\w+)\x20*(==|<>|>|>=|<|<=)\x20*(\d+)",ss)
+        match = re.match("([-\w]+)\x20*(==|<>|>|>=|<|<=)\x20*(\d+)",ss)
         if match is None:
             return None
         key = match.group(1)
